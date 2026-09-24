@@ -30,6 +30,14 @@
           <select id="keyFilter"><option value="">Todas</option></select>
         </div>
         <div>
+          <label for="keyMode">Relación tonal</label>
+          <select id="keyMode" disabled>
+            <option value="exact">Solo tonalidad exacta</option>
+            <option value="safe">Compatibilidad segura</option>
+            <option value="wide">Exploración amplia</option>
+          </select>
+        </div>
+        <div>
           <label for="bpmMin">BPM mín.</label>
           <input id="bpmMin" type="number" min="30" max="300" placeholder="Ej. 100" />
         </div>
@@ -50,6 +58,49 @@
       <div class="filter-actions">
         <button id="clearFilters" class="ghost">Limpiar filtros</button>
         <span id="resultCount" class="muted"></span>
+      </div>
+    </section>
+
+    <section id="harmonicExplorer" class="panel harmonic-panel">
+      <div class="harmonic-head">
+        <div>
+          <p class="eyebrow">EXPLORADOR ARMÓNICO</p>
+          <h2>Rueda de tonalidades</h2>
+          <p class="muted">Elegí una tonalidad y explorá relaciones cercanas. La rueda usa la lógica Camelot y el círculo de quintas.</p>
+        </div>
+        <div class="harmonic-controls">
+          <div>
+            <label for="harmonicKey">Tonalidad base</label>
+            <select id="harmonicKey"><option value="">Elegí una tonalidad</option></select>
+          </div>
+          <div>
+            <label for="harmonicMode">Nivel de exploración</label>
+            <select id="harmonicMode">
+              <option value="safe">Segura</option>
+              <option value="wide">Amplia</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="harmonic-layout">
+        <div>
+          <div id="harmonicWheel" class="harmonic-wheel" aria-label="Rueda armónica interactiva"></div>
+          <div class="harmonic-legend">
+            <span><i class="legend-dot current"></i>Actual</span>
+            <span><i class="legend-dot relative"></i>Relativa</span>
+            <span><i class="legend-dot neighbor"></i>Vecina</span>
+            <span><i class="legend-dot wide"></i>Ampliada</span>
+          </div>
+        </div>
+        <div class="harmonic-info">
+          <div id="harmonicIntro" class="harmonic-intro">Seleccioná una tonalidad en la rueda o en el menú para ver sus relaciones.</div>
+          <div id="harmonicSummary" class="harmonic-summary hidden"></div>
+          <div class="harmonic-actions">
+            <button id="applyHarmonicFilter" type="button" disabled>Buscar estas tonalidades</button>
+            <button id="clearHarmonic" type="button" class="ghost">Limpiar</button>
+          </div>
+        </div>
       </div>
     </section>
 

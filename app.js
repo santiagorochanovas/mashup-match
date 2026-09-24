@@ -13,6 +13,8 @@ const KEYS = [
   {name:'C♯ minor', camelot:'12A'}, {name:'E major', camelot:'12B'}
 ];
 
+const WHEEL_ORDER = [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
+
 const config = window.APP_CONFIG || {};
 const publicKey = config.SUPABASE_PUBLISHABLE_KEY || config.SUPABASE_ANON_KEY || '';
 const hasConfig = Boolean(config.SUPABASE_URL && publicKey);
@@ -24,8 +26,10 @@ let csvImportRows = [];
 
 const $ = (id) => document.getElementById(id);
 const els = {
-  search: $('search'), keyFilter: $('keyFilter'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), sort: $('sort'),
+  search: $('search'), keyFilter: $('keyFilter'), keyMode: $('keyMode'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), sort: $('sort'),
   clearFilters: $('clearFilters'), resultCount: $('resultCount'), songGrid: $('songGrid'), status: $('status'),
+  harmonicKey: $('harmonicKey'), harmonicMode: $('harmonicMode'), harmonicWheel: $('harmonicWheel'), harmonicIntro: $('harmonicIntro'),
+  harmonicSummary: $('harmonicSummary'), applyHarmonicFilter: $('applyHarmonicFilter'), clearHarmonic: $('clearHarmonic'), harmonicExplorer: $('harmonicExplorer'),
   adminToggle: $('adminToggle'), adminPanel: $('adminPanel'), loginBox: $('loginBox'), songForm: $('songForm'),
   email: $('email'), password: $('password'), loginBtn: $('loginBtn'), logoutBtn: $('logoutBtn'),
   songId: $('songId'), title: $('title'), artist: $('artist'), bpm: $('bpm'), key: $('key'), version: $('version'), album: $('album'), year: $('year'), coverUrl: $('coverUrl'), notes: $('notes'),
@@ -39,6 +43,7 @@ function initKeySelects() {
   const options = KEYS.map(k => `<option value="${k.camelot}">${k.name} · ${k.camelot}</option>`).join('');
   els.key.innerHTML = '<option value="">Elegí una tonalidad</option>' + options;
   els.keyFilter.innerHTML = '<option value="">Todas</option>' + options;
+  els.harmonicKey.innerHTML = '<option value="">Elegí una tonalidad</option>' + options;
 }
 
 function showStatus(message, error = false) {
@@ -49,6 +54,147 @@ function showStatus(message, error = false) {
 function hideStatus() { els.status.classList.add('hidden'); }
 
 function keyName(camelot) { return KEYS.find(k => k.camelot === camelot)?.name || camelot || '—'; }
+
+
+function shortKeyName(camelot) {
+  const name = keyName(camelot);
+  return name.replace(' major', '').replace(' minor', 'm');
+}
+
+function normalizeCamelotNumber(number) {
+  return ((Number(number) - 1 + 12) % 12) + 1;
+}
+
+function harmonicRelation(source, target) {
+  if (!source || !target) return { level:'none', score:0, label:'Sin relación cercana', description:'' };
+  if (source === target) return {
+    level:'exact', score:50, label:'Misma tonalidad',
+    description:'Mismo centro tonal y el mismo conjunto de notas.'
+  };
+
+  const sourceNumber = parseInt(source, 10);
+  const targetNumber = parseInt(target, 10);
+  const sourceMode = source.slice(-1);
+  const targetMode = target.slice(-1);
+  const distance = Math.min(Math.abs(sourceNumber - targetNumber), 12 - Math.abs(sourceNumber - targetNumber));
+
+  if (sourceNumber === targetNumber && sourceMode !== targetMode) return {
+    level:'relative', score:46, label:'Relativa mayor/menor',
+    description:'Comparten las mismas siete notas; cambia el centro tonal.'
+  };
+  if (sourceMode === targetMode && distance === 1) return {
+    level:'neighbor', score:42, label:'Vecina en la rueda',
+    description:'Relación de quinta/cuarta: comparten seis de las siete notas de la escala.'
+  };
+  if (sourceMode !== targetMode && distance === 1) return {
+    level:'wide', score:34, label:'Pariente cercano',
+    description:'Es la relativa de una tonalidad vecina. Útil para ampliar la búsqueda y probar transiciones con más color.'
+  };
+  return { level:'none', score:0, label:'Sin relación cercana', description:'' };
+}
+
+function harmonicKeysForMode(baseKey, mode='exact') {
+  if (!baseKey) return new Set();
+  const sourceNumber = parseInt(baseKey, 10);
+  const sourceMode = baseKey.slice(-1);
+  const oppositeMode = sourceMode === 'A' ? 'B' : 'A';
+  const prev = normalizeCamelotNumber(sourceNumber - 1);
+  const next = normalizeCamelotNumber(sourceNumber + 1);
+  const result = new Set([baseKey]);
+  if (mode === 'exact') return result;
+  result.add(`${sourceNumber}${oppositeMode}`);
+  result.add(`${prev}${sourceMode}`);
+  result.add(`${next}${sourceMode}`);
+  if (mode === 'wide') {
+    result.add(`${prev}${oppositeMode}`);
+    result.add(`${next}${oppositeMode}`);
+  }
+  return result;
+}
+
+function relatedKeyGroups(baseKey) {
+  if (!baseKey) return [];
+  const number = parseInt(baseKey, 10);
+  const mode = baseKey.slice(-1);
+  const opposite = mode === 'A' ? 'B' : 'A';
+  const prev = normalizeCamelotNumber(number - 1);
+  const next = normalizeCamelotNumber(number + 1);
+  return [
+    { title:'Actual', relation:'exact', keys:[baseKey], note:'La referencia de la búsqueda.' },
+    { title:'Relativa', relation:'relative', keys:[`${number}${opposite}`], note:'Mismas siete notas, distinto centro tonal.' },
+    { title:'Vecinas', relation:'neighbor', keys:[`${prev}${mode}`, `${next}${mode}`], note:'Quinta/cuarta vecina; comparten seis de siete notas.' },
+    { title:'Exploración amplia', relation:'wide', keys:[`${prev}${opposite}`, `${next}${opposite}`], note:'Relativas de las tonalidades vecinas.' }
+  ];
+}
+
+function songCountForKey(camelot) {
+  return songs.filter(song => song.camelot_key === camelot).length;
+}
+
+function wheelClass(baseKey, targetKey, mode) {
+  if (!baseKey) return '';
+  const relation = harmonicRelation(baseKey, targetKey);
+  if (relation.level === 'exact') return 'is-current';
+  if (mode === 'safe' && ['relative','neighbor'].includes(relation.level)) return `is-${relation.level}`;
+  if (mode === 'wide' && ['relative','neighbor','wide'].includes(relation.level)) return `is-${relation.level}`;
+  return '';
+}
+
+function renderHarmonicExplorer() {
+  const baseKey = els.harmonicKey.value;
+  const mode = els.harmonicMode.value;
+  const radius = { B: 43, A: 29 };
+  const buttons = [];
+
+  WHEEL_ORDER.forEach((number, index) => {
+    const angle = (-90 + index * 30) * Math.PI / 180;
+    ['B','A'].forEach(letter => {
+      const camelot = `${number}${letter}`;
+      const r = radius[letter];
+      const left = 50 + Math.cos(angle) * r;
+      const top = 50 + Math.sin(angle) * r;
+      const count = songCountForKey(camelot);
+      buttons.push(`<button type="button" class="wheel-key ${letter === 'B' ? 'major' : 'minor'} ${wheelClass(baseKey, camelot, mode)}" style="left:${left}%;top:${top}%" data-harmonic-key="${camelot}" title="${escapeHtml(keyName(camelot))} · ${camelot} · ${count} canción${count === 1 ? '' : 'es'}"><strong>${escapeHtml(shortKeyName(camelot))}</strong><span>${camelot}</span></button>`);
+    });
+  });
+
+  const center = baseKey
+    ? `<div class="wheel-center"><span>${escapeHtml(baseKey)}</span><strong>${escapeHtml(keyName(baseKey))}</strong><small>${songCountForKey(baseKey)} en catálogo</small></div>`
+    : `<div class="wheel-center"><span>♫</span><strong>Elegí un tono</strong><small>24 tonalidades</small></div>`;
+  els.harmonicWheel.innerHTML = center + buttons.join('');
+
+  if (!baseKey) {
+    els.harmonicIntro.classList.remove('hidden');
+    els.harmonicSummary.classList.add('hidden');
+    els.harmonicSummary.innerHTML = '';
+    els.applyHarmonicFilter.disabled = true;
+    return;
+  }
+
+  els.harmonicIntro.classList.add('hidden');
+  els.harmonicSummary.classList.remove('hidden');
+  els.applyHarmonicFilter.disabled = false;
+  const groups = relatedKeyGroups(baseKey).filter(group => mode === 'wide' || group.relation !== 'wide');
+  els.harmonicSummary.innerHTML = `
+    <div class="harmonic-selected">
+      <span class="eyebrow">TONALIDAD BASE</span>
+      <h3>${escapeHtml(keyName(baseKey))} · ${baseKey}</h3>
+      <p class="muted">${mode === 'wide' ? 'Exploración amplia: suma las relativas de las tonalidades vecinas.' : 'Modo seguro: misma tonalidad, relativa y vecinas de quinta/cuarta.'}</p>
+    </div>
+    ${groups.map(group => `<div class="relation-card relation-${group.relation}">
+      <div><strong>${group.title}</strong><span>${group.note}</span></div>
+      <div class="relation-keys">${group.keys.map(key => `<button type="button" class="relation-key" data-search-key="${key}"><b>${escapeHtml(keyName(key))}</b><small>${key} · ${songCountForKey(key)} canción${songCountForKey(key) === 1 ? '' : 'es'}</small></button>`).join('')}</div>
+    </div>`).join('')}`;
+}
+
+function useHarmonicSearch(baseKey, mode='safe') {
+  if (!baseKey) return;
+  els.keyFilter.value = baseKey;
+  els.keyMode.value = mode;
+  els.keyMode.disabled = false;
+  render();
+  document.querySelector('.search-panel')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
 
 function cover(song, cls='cover') {
   if (!song.cover_url) return `<div class="${cls} cover-placeholder">♫</div>`;
@@ -71,17 +217,19 @@ async function loadSongs() {
   if (error) return showStatus('No pude cargar las canciones: ' + error.message, true);
   songs = data || [];
   render();
+  renderHarmonicExplorer();
 }
 
 function filteredSongs() {
   const q = els.search.value.trim().toLowerCase();
   const key = els.keyFilter.value;
+  const acceptedKeys = key ? harmonicKeysForMode(key, els.keyMode.value) : null;
   const min = parseFloat(els.bpmMin.value);
   const max = parseFloat(els.bpmMax.value);
   let list = songs.filter(song => {
     const haystack = [song.title, song.artist, song.version, song.album, song.year, song.bpm, song.camelot_key, keyName(song.camelot_key)].join(' ').toLowerCase();
     if (q && !haystack.includes(q)) return false;
-    if (key && song.camelot_key !== key) return false;
+    if (key && !acceptedKeys.has(song.camelot_key)) return false;
     if (!Number.isNaN(min) && Number(song.bpm) < min) return false;
     if (!Number.isNaN(max) && Number(song.bpm) > max) return false;
     return true;
@@ -123,13 +271,7 @@ function render() {
 }
 
 function compatibleKeyScore(a, b) {
-  if (!a || !b) return 0;
-  if (a === b) return 50;
-  const na = parseInt(a), nb = parseInt(b), la = a.slice(-1), lb = b.slice(-1);
-  const circularDistance = Math.min(Math.abs(na-nb), 12-Math.abs(na-nb));
-  if (la === lb && circularDistance === 1) return 42; // vecino Camelot
-  if (na === nb && la !== lb) return 40; // relativo mayor/menor
-  return 0;
+  return harmonicRelation(a, b).score;
 }
 
 function bpmRelation(source, target) {
@@ -148,19 +290,20 @@ function bpmRelation(source, target) {
 }
 
 function recommendationScore(source, target) {
-  const keyScore = compatibleKeyScore(source.camelot_key, target.camelot_key);
+  const relation = harmonicRelation(source.camelot_key, target.camelot_key);
   const bpm = bpmRelation(source.bpm, target.bpm);
-  return { total:keyScore + bpm.score, keyScore, bpm };
+  return { total:relation.score + bpm.score, keyScore:relation.score, relation, bpm };
 }
 
 function openDetails(song) {
   const matches = songs
     .filter(s => s.id !== song.id)
     .map(s => ({song:s, ...recommendationScore(song, s)}))
-    .filter(x => x.total >= 45)
-    .sort((a,b) => b.total - a.total)
-    .slice(0, 12);
+    .filter(x => x.relation.level !== 'none' && x.bpm.score >= 20)
+    .sort((a,b) => b.total - a.total || Math.abs(a.bpm.pct) - Math.abs(b.bpm.pct))
+    .slice(0, 18);
 
+  const groups = relatedKeyGroups(song.camelot_key);
   els.dialogContent.innerHTML = `<div class="detail">
     <div class="detail-head">
       ${cover(song, 'detail-cover')}
@@ -175,20 +318,29 @@ function openDetails(song) {
           ${song.year ? `<span class="badge">${song.year}</span>` : ''}
         </div>
         ${song.notes ? `<p>${escapeHtml(song.notes)}</p>` : ''}
+        <button type="button" class="explore-song" data-explore-key="${song.camelot_key}">Abrir en Explorador Armónico</button>
       </div>
     </div>
+
+    <div class="detail-harmony">
+      <h3>Mapa armónico</h3>
+      <p class="muted">Además de la tonalidad exacta, podés probar la relativa, sus vecinas por quinta/cuarta y, si querés ampliar, las relativas de esas vecinas.</p>
+      <div class="detail-relation-grid">
+        ${groups.map(group => `<div class="detail-relation relation-${group.relation}"><strong>${group.title}</strong>${group.keys.map(key => `<button type="button" data-search-key="${key}">${escapeHtml(keyName(key))}<small>${key} · ${songCountForKey(key)} en catálogo</small></button>`).join('')}</div>`).join('')}
+      </div>
+    </div>
+
     <h3>Ideas para combinar</h3>
-    <p class="muted">La compatibilidad prioriza misma tonalidad, vecinos/relativos de Camelot y BPM cercano, incluyendo half-time y double-time.</p>
+    <p class="muted">Ordenadas por cercanía armónica y de tempo. “Afinidad” es una heurística para explorar ideas, no una garantía de que dos arreglos concretos vayan a funcionar juntos.</p>
     <div class="match-list">
       ${matches.length ? matches.map(m => {
         const pct = m.bpm.pct;
         const tempo = Math.abs(pct) < .05 ? 'mismo tempo' : `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% (${m.bpm.label})`;
-        const keyReason = m.keyScore === 50 ? 'misma tonalidad' : m.keyScore === 42 ? 'tono vecino Camelot' : m.keyScore === 40 ? 'relativo mayor/menor' : 'BPM compatible';
         return `<div class="match">
-          <div><strong>${escapeHtml(m.song.title)} — ${escapeHtml(m.song.artist)}</strong><span class="muted">${m.song.bpm} BPM · ${escapeHtml(keyName(m.song.camelot_key))} ${m.song.camelot_key} · ${keyReason} · ${tempo}</span></div>
-          <span class="score">${m.total}%</span>
+          <div><strong>${escapeHtml(m.song.title)} — ${escapeHtml(m.song.artist)}</strong><span class="muted">${m.song.bpm} BPM · ${escapeHtml(keyName(m.song.camelot_key))} ${m.song.camelot_key}</span><span class="match-reason ${m.relation.level}">${escapeHtml(m.relation.label)} · ${tempo}</span></div>
+          <span class="score">Afinidad ${m.total}</span>
         </div>`;
-      }).join('') : '<p class="muted">Todavía no hay suficientes canciones compatibles en la base.</p>'}
+      }).join('') : '<p class="muted">Todavía no hay suficientes canciones con relación armónica y BPM cercano en la base.</p>'}
     </div>
   </div>`;
   els.dialog.showModal();
@@ -534,13 +686,20 @@ async function deleteSong(id) {
 
 ['input','change'].forEach(evt => {
   els.search.addEventListener(evt, render);
-  els.keyFilter.addEventListener(evt, render);
   els.bpmMin.addEventListener(evt, render);
   els.bpmMax.addEventListener(evt, render);
   els.sort.addEventListener(evt, render);
 });
+els.keyFilter.addEventListener('change', () => {
+  els.keyMode.disabled = !els.keyFilter.value;
+  render();
+});
+els.keyMode.addEventListener('change', render);
 
-els.clearFilters.addEventListener('click', () => { els.search.value=''; els.keyFilter.value=''; els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='title'; render(); });
+els.clearFilters.addEventListener('click', () => {
+  els.search.value=''; els.keyFilter.value=''; els.keyMode.value='exact'; els.keyMode.disabled=true;
+  els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='title'; render();
+});
 els.adminToggle.addEventListener('click', () => els.adminPanel.classList.toggle('hidden'));
 els.loginBtn.addEventListener('click', login);
 els.logoutBtn.addEventListener('click', logout);
@@ -551,7 +710,44 @@ els.skipDuplicates.addEventListener('change', renderImportPreview);
 els.importCsvBtn.addEventListener('click', importCsvSongs);
 els.clearCsvBtn.addEventListener('click', () => clearImport());
 els.closeDialog.addEventListener('click', () => els.dialog.close());
-els.dialog.addEventListener('click', (e) => { if (e.target === els.dialog) els.dialog.close(); });
+els.dialog.addEventListener('click', (e) => {
+  if (e.target === els.dialog) return els.dialog.close();
+  const explore = e.target.closest('[data-explore-key]');
+  if (explore) {
+    els.harmonicKey.value = explore.dataset.exploreKey;
+    renderHarmonicExplorer();
+    els.dialog.close();
+    els.harmonicExplorer.scrollIntoView({ behavior:'smooth', block:'start' });
+    return;
+  }
+  const searchKey = e.target.closest('[data-search-key]');
+  if (searchKey) {
+    useHarmonicSearch(searchKey.dataset.searchKey, 'exact');
+    els.dialog.close();
+  }
+});
+
+els.harmonicKey.addEventListener('change', renderHarmonicExplorer);
+els.harmonicMode.addEventListener('change', renderHarmonicExplorer);
+els.harmonicWheel.addEventListener('click', (e) => {
+  const keyButton = e.target.closest('[data-harmonic-key]');
+  if (!keyButton) return;
+  els.harmonicKey.value = keyButton.dataset.harmonicKey;
+  renderHarmonicExplorer();
+});
+els.harmonicSummary.addEventListener('click', (e) => {
+  const keyButton = e.target.closest('[data-search-key]');
+  if (!keyButton) return;
+  els.harmonicKey.value = keyButton.dataset.searchKey;
+  renderHarmonicExplorer();
+});
+els.applyHarmonicFilter.addEventListener('click', () => useHarmonicSearch(els.harmonicKey.value, els.harmonicMode.value));
+els.clearHarmonic.addEventListener('click', () => {
+  els.harmonicKey.value = '';
+  els.harmonicMode.value = 'safe';
+  renderHarmonicExplorer();
+});
+
 els.songGrid.addEventListener('click', (e) => {
   const view = e.target.closest('[data-view]');
   if (view) return openDetails(songs.find(s => String(s.id) === String(view.dataset.view)));
@@ -562,6 +758,7 @@ els.songGrid.addEventListener('click', (e) => {
 });
 
 initKeySelects();
+renderHarmonicExplorer();
 loadSongs();
 updateAuthUI();
 if (sb) sb.auth.onAuthStateChange(() => updateAuthUI());

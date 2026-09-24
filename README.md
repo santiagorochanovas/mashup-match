@@ -2,17 +2,26 @@
 
 Catálogo web personal para buscar canciones por título, artista, BPM y tonalidad, con sugerencias para mashups usando la rueda Camelot.
 
-## Qué incluye esta V1.2
+## Qué incluye esta V1.3
 
 - Búsqueda por título, artista, álbum, año, BPM o tonalidad.
 - Filtros por tonalidad y rango de BPM.
+- Filtro de relación tonal con tres niveles:
+  - tonalidad exacta;
+  - compatibilidad segura;
+  - exploración amplia.
+- Explorador Armónico con rueda interactiva de 24 tonalidades.
+- Conteo de canciones disponibles por tonalidad directamente en la rueda.
+- Relaciones explicadas: misma tonalidad, relativa mayor/menor, vecinas de quinta/cuarta y parientes cercanos.
 - Página/modal de detalle por canción.
 - Recomendaciones por:
   - misma tonalidad;
-  - tonalidades vecinas en Camelot;
-  - relativo mayor/menor;
+  - tonalidad relativa mayor/menor;
+  - tonalidades vecinas en Camelot / círculo de quintas;
+  - relativas de las tonalidades vecinas como exploración amplia;
   - BPM cercano;
   - relación half-time/double-time.
+- Cada ficha de canción incluye un mapa armónico y acceso directo al Explorador Armónico.
 - Login de administrador.
 - Alta, edición y borrado desde la propia web.
 - Campo de versión (Original, Remix, Acapella, Instrumental, etc.).
@@ -45,6 +54,19 @@ Abrir `index.html` directamente puede funcionar, pero es mejor usar un servidor 
 3. En GitHub: **Settings > Pages**.
 4. Elegí publicar desde la rama `main` y la carpeta raíz.
 5. GitHub te dará una URL pública.
+
+## Explorador Armónico
+
+La rueda está pensada para descubrir ideas, no para afirmar que dos canciones necesariamente funcionarán juntas: el arreglo, la melodía, los acordes y el momento de la mezcla también importan.
+
+Ejemplo con **F major · 7B**:
+
+- **7B · F major**: misma tonalidad.
+- **7A · D minor**: relativa menor; comparte las mismas siete notas.
+- **6B · B♭ major** y **8B · C major**: vecinas por cuarta/quinta; comparten seis de siete notas.
+- En modo **Amplio** también aparecen **6A · G minor** y **8A · A minor**, que son las relativas de esas tonalidades vecinas.
+
+En el buscador, al elegir una tonalidad podés seleccionar **Solo tonalidad exacta**, **Compatibilidad segura** o **Exploración amplia**. Desde la rueda, el botón **Buscar estas tonalidades** aplica automáticamente el conjunto correspondiente al catálogo.
 
 ## Importar canciones por CSV
 
