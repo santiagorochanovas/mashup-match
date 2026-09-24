@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mashup Match</title>
+  <meta name="description" content="Buscador de canciones por tonalidad y BPM pensado para mashups." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">CATÁLOGO PARA MASHUPS</p>
+      <h1>Mashup Match</h1>
+      <p class="subtitle">Encontrá canciones compatibles por tonalidad, BPM y rueda Camelot.</p>
+    </div>
+    <button id="adminToggle" class="ghost">Administrar</button>
+  </header>
+
+  <main class="container">
+    <section class="panel search-panel">
+      <div class="search-main">
+        <label for="search">Buscar</label>
+        <input id="search" type="search" placeholder="Canción, artista, álbum o año…" autocomplete="off" />
+      </div>
+
+      <div class="filters">
+        <div>
+          <label for="keyFilter">Tonalidad</label>
+          <select id="keyFilter"><option value="">Todas</option></select>
+        </div>
+        <div>
+          <label for="bpmMin">BPM mín.</label>
+          <input id="bpmMin" type="number" min="30" max="300" placeholder="Ej. 100" />
+        </div>
+        <div>
+          <label for="bpmMax">BPM máx.</label>
+          <input id="bpmMax" type="number" min="30" max="300" placeholder="Ej. 130" />
+        </div>
+        <div>
+          <label for="sort">Ordenar</label>
+          <select id="sort">
+            <option value="title">Título</option>
+            <option value="artist">Artista</option>
+            <option value="bpm">BPM</option>
+            <option value="year">Año</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button id="clearFilters" class="ghost">Limpiar filtros</button>
+        <span id="resultCount" class="muted"></span>
+      </div>
+    </section>
+
+    <section id="status" class="status hidden"></section>
+    <section id="songGrid" class="grid" aria-live="polite"></section>
+
+    <section id="adminPanel" class="panel admin-panel hidden">
+      <div class="admin-head">
+        <div>
+          <p class="eyebrow">ADMIN</p>
+          <h2>Gestionar catálogo</h2>
+        </div>
+        <button id="logoutBtn" class="ghost hidden">Cerrar sesión</button>
+      </div>
+
+      <div id="loginBox">
+        <p class="muted">Iniciá sesión para agregar, editar o borrar canciones.</p>
+        <div class="inline-form">
+          <input id="email" type="email" placeholder="Email" />
+          <input id="password" type="password" placeholder="Contraseña" />
+          <button id="loginBtn">Entrar</button>
+        </div>
+      </div>
+
+      <form id="songForm" class="song-form hidden">
+        <input id="songId" type="hidden" />
+        <div><label>Título *</label><input id="title" required /></div>
+        <div><label>Artista *</label><input id="artist" required /></div>
+        <div><label>BPM *</label><input id="bpm" type="number" min="30" max="300" step="0.01" required /></div>
+        <div><label>Tonalidad *</label><select id="key" required></select></div>
+        <div><label>Versión</label><input id="version" placeholder="Original, Remix, Acapella…" /></div>
+        <div><label>Álbum</label><input id="album" /></div>
+        <div><label>Año</label><input id="year" type="number" min="1900" max="2100" /></div>
+        <div class="wide"><label>URL de portada</label><input id="coverUrl" type="url" placeholder="https://…" /></div>
+        <div class="wide"><label>Notas</label><textarea id="notes" rows="3" placeholder="Versión, remix, observaciones…"></textarea></div>
+        <div class="form-actions wide">
+          <button type="submit" id="saveBtn">Guardar canción</button>
+          <button type="button" id="cancelEdit" class="ghost hidden">Cancelar edición</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <dialog id="songDialog">
+    <button id="closeDialog" class="dialog-close" aria-label="Cerrar">×</button>
+    <div id="dialogContent"></div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
