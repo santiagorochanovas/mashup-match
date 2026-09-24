@@ -90,6 +90,36 @@
           <button type="button" id="cancelEdit" class="ghost hidden">Cancelar edición</button>
         </div>
       </form>
+
+      <section id="importBox" class="import-box hidden" aria-labelledby="importTitle">
+        <div class="section-divider"></div>
+        <div class="import-head">
+          <div>
+            <p class="eyebrow">IMPORTACIÓN MASIVA</p>
+            <h3 id="importTitle">Importar canciones desde CSV</h3>
+            <p class="muted">Compatible con archivos CSV exportados desde Excel o Google Sheets. Acepta coma, punto y coma o tabulación como separador.</p>
+          </div>
+          <a class="button-link ghost-link" href="plantilla-canciones.csv" download>Descargar plantilla</a>
+        </div>
+
+        <div class="import-picker">
+          <label class="file-button" for="csvFile">Seleccionar CSV</label>
+          <input id="csvFile" class="visually-hidden" type="file" accept=".csv,text/csv,text/plain" />
+          <span id="csvFileName" class="muted">Ningún archivo seleccionado.</span>
+        </div>
+
+        <label class="check-row">
+          <input id="skipDuplicates" type="checkbox" checked />
+          <span>Omitir duplicados que ya estén en el catálogo o repetidos dentro del archivo.</span>
+        </label>
+
+        <div id="importSummary" class="import-summary hidden"></div>
+        <div id="importPreview" class="import-preview hidden"></div>
+        <div id="importControls" class="form-actions hidden">
+          <button id="importCsvBtn" type="button">Importar canciones</button>
+          <button id="clearCsvBtn" type="button" class="ghost">Cancelar</button>
+        </div>
+      </section>
     </section>
   </main>
 

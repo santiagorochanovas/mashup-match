@@ -71,3 +71,35 @@ dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(4px); }
   .detail-head { grid-template-columns: 1fr; }
   .detail-head img, .detail-head .cover-placeholder { width: 100%; }
 }
+
+/* Importador CSV */
+.section-divider { height: 1px; background: var(--border); margin: 1.4rem 0; }
+.import-box h3 { margin: .2rem 0 .35rem; }
+.import-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.button-link, .file-button { display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; padding: .8rem 1rem; font-weight: 750; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.ghost-link { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.file-button { background: var(--accent); color: #0a0b0d; }
+.import-picker { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-top: 1rem; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+.check-row { display: flex; align-items: flex-start; gap: .65rem; margin-top: .9rem; color: var(--muted); font-size: .9rem; }
+.check-row input { width: auto; margin-top: .18rem; accent-color: var(--accent); }
+.import-summary { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: .55rem; }
+.summary-pill { padding: .45rem .7rem; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-2); font-size: .82rem; }
+.summary-pill.ok { color: var(--accent); }
+.summary-pill.warn { color: #ffd479; }
+.summary-pill.bad { color: #ffb2bb; }
+.import-preview { margin-top: .9rem; overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
+.import-table { width: 100%; border-collapse: collapse; min-width: 860px; font-size: .84rem; }
+.import-table th, .import-table td { text-align: left; padding: .7rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.import-table th { color: var(--muted); background: #111318; position: sticky; top: 0; }
+.import-table tr:last-child td { border-bottom: 0; }
+.import-table .row-error { color: #ffb2bb; }
+.import-table .row-duplicate { color: #ffd479; }
+.import-table .row-ok { color: var(--accent); }
+.import-note { padding: .75rem; color: var(--muted); font-size: .82rem; border-top: 1px solid var(--border); }
+#importControls { margin-top: .9rem; }
+@media (max-width: 760px) {
+  .import-head { flex-direction: column; }
+  .button-link, .file-button { width: 100%; }
+  .import-picker { align-items: stretch; }
+}
