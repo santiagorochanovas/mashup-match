@@ -1,55 +1,64 @@
-# Mashup Match V1.5 · Autocompletar con MusicBrainz
+# Mashup Match V1.6 — Novedades primero + apoyo voluntario
 
-Esta versión **conserva** las pestañas, el buscador, el Explorador Armónico, la paginación y el importador CSV de V1.4. Agrega un buscador de metadatos dentro de **Administrar**. No modifica la tabla `songs`, ni elimina datos existentes.
+Actualización incremental de V1.5: conserva catálogo, búsqueda, rueda Camelot, paginación, CSV, autocompletado y configuración existente. **No ejecutés SQL de nuevo ni modifiques `config.js` ni la Edge Function `music-metadata` que ya corregiste.** Las canciones actuales siguen almacenadas en Supabase.
 
-## Actualizar la web en GitHub (4 archivos)
+## A. Actualizar GitHub Pages
 
-En tu repositorio `mashup-match`, reemplazá **solamente** estos archivos por los del ZIP de actualización:
+1. Guardá una copia de los archivos actuales del repositorio o comprobá que podés volver a un commit anterior.
+2. Extraé el ZIP de actualización. En GitHub > tu repositorio `mashup-match` > `Add file` > `Upload files`, arrastrá **los seis archivos de la raíz**:
+   - `index.html`
+   - `styles.css`
+   - `app.js`
+   - `support-config.js` (nuevo)
+   - `donations.js` (nuevo)
+   - `README.md` (opcional)
+3. Confirmá `Commit changes`. **No subas ni reemplaces `config.js`**, que ya contiene la conexión de tu sitio; tampoco copies `supabase.sql` ni cambies tu función de MusicBrainz.
+4. Comprobá la versión publicada; si ves una versión antigua, probá `Ctrl + F5`.
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `README.md` (opcional, sólo documentación)
+### Cómo cambia el orden
 
-No reemplaces `config.js`, no vuelvas a ejecutar `supabase.sql` y no hace falta modificar tus canciones actuales. Cuando GitHub Pages termine de publicar, recargá la página (Ctrl+F5 si seguís viendo la anterior).
+Ahora al entrar aparece `Novedades (primero las nuevas)` en el selector **Ordenar**. Utiliza `created_at` de tu tabla `songs`: es el momento de ingreso a la base, no el año del tema ni la fecha de la última edición. Podés seguir ordenando por título, artista, BPM, año o por antigüedad. `Limpiar filtros` vuelve a novedades. La paginación de 24 por página sigue igual. En un CSV importado de un solo golpe, varias canciones pueden compartir momento de ingreso; el orden entre esas canciones del mismo lote no equivale necesariamente al orden de las filas del Excel.
 
-**Importante:** la consulta automática requiere también el paso siguiente, que se realiza **una sola vez** en Supabase.
+## B. Crear y activar el botón de donaciones
 
-## Activar la función de metadatos en Supabase
+El sitio **no procesa dinero ni tarjetas**. Sólo enlaza a tu perfil oficial de un servicio de apoyo externo. Todas las funciones siguen siendo gratuitas.
 
-MusicBrainz requiere que las aplicaciones se identifiquen mediante `User-Agent` y respeten un máximo de 1 petición por segundo. Como desde JavaScript del navegador no se puede configurar ese encabezado correctamente, las búsquedas pasan por una pequeña **Supabase Edge Function**. Así mantenemos el hosting gratuito, no publicamos ninguna clave privada y las búsquedas sólo están disponibles para usuarios conectados.
+1. Creá tu página pública en https://ko-fi.com/ (alternativamente PayPal.Me, Cafecito o Buy Me a Coffee, si están disponibles para tu cuenta). Comprobá que podés recibir aportes desde tu país.
+2. Si elegís Ko-fi y sólo querés propinas, revisá `Settings > Payment` y desactivá **Contributor / Standard** si querés la opción sin comisión de plataforma para donaciones puntuales; PayPal u otro procesador mantiene sus propias tarifas. Verificá las condiciones actuales en el servicio.
+3. Editá **sólo** `support-config.js`, y reemplazá las comillas vacías por tu enlace REAL, por ejemplo:
 
-1. Entrá a tu proyecto de Supabase.
-2. En el menú izquierdo abrí **Edge Functions**.
-3. Elegí **Deploy a new function → Via Editor** (crear desde el editor).
-4. Poné exactamente este nombre: **`music-metadata`**.
-5. Borrá el código de ejemplo y pegá **todo** el contenido del archivo `edge-function/music-metadata/index.ts` incluido en este ZIP.
-6. Pulsá **Deploy function**. Podés dejar habilitada la opción predeterminada de **Verify JWT**; la web invoca la función estando conectada como administrador. No tenés que agregar variables ni claves secretas nuevas.
+```js
+window.MASHUP_SUPPORT = {
+  url: 'https://ko-fi.com/tuusuario'
+};
+```
 
-El código incluye autorización con Supabase Auth, compatibilidad CORS para GitHub Pages, una cola por instancia para espaciar búsquedas y mensajes de error. Está diseñado para **consultas manuales de un administrador**, no para analizar o importar catálogos enteros de golpe.
+4. Subí el `support-config.js` editado a la raíz de GitHub. Tras publicar, aparecerán un botón discreto `☕ Apoyar el proyecto` arriba y otro al final de la página. Si no ponés una URL válida, ambos botones permanecen ocultos y no hay enlaces que lleven a una cuenta equivocada.
 
-> Si vas a monetizar/comercializar Mashup Match, verificá primero las condiciones de uso comercial de MusicBrainz y los derechos de las portadas.
+El archivo de configuración de donaciones es público y **no contiene contraseñas, tokens ni claves privadas**. Poné sólo el enlace a tu perfil público. No pegues allí claves de PayPal ni códigos de acceso.
 
-## Cómo probarlo con “Bad Romance”
+## C. Dominio personalizado (opcional, no incluido porque aún no compraste uno)
 
-1. Entrá a tu web > **Administrar** e iniciá sesión.
-2. En **Autocompletar con MusicBrainz**, buscá canción **Bad Romance** y artista **Lady Gaga**.
-3. Elegí la grabación correspondiente entre los resultados (puede haber diferentes versiones).
-4. Seleccioná **The Fame Monster**, si aparece entre los álbumes de ese resultado. MusicBrainz puede devolver grabaciones asociadas a diferentes lanzamientos.
-5. La web comprueba si existe una portada en Cover Art Archive. Si no existe, dejá el campo de portada manual. Revisá el año sugerido: es el del lanzamiento elegido.
-6. Pulsá **Aplicar al formulario**. Los datos se completan en campos vacíos, **sin guardar**. BPM, tonalidad, versión y notas permanecen exactamente como estaban.
-7. Si querés reemplazar un campo ya completado, marcá la casilla **También reemplazar los campos que ya completé** antes de aplicar. Revisá todo y pulsá el **Guardar canción** habitual.
+Tu GitHub Pages actual seguirá funcionando gratis. Si comprás un dominio como `mashupmatch.xyz` o `mashupmatch.com` (ejemplos, NO verificada la disponibilidad), no necesitás pagar alojamiento.
 
-Para completar la portada o el álbum de una de tus canciones actuales, pulsá **Editar** en su tarjeta y después **Usar datos del formulario**. El botón no cambia los datos hasta que elijas el resultado, apliques y guardes. Si no te convence la sugerencia, **Descartar**.
+1. Elegí el dominio comprobando **el costo de renovación anual** además de la oferta inicial.
+2. En GitHub > repositorio > `Settings > Pages > Custom domain`, guardá primero tu dominio. GitHub crea un archivo `CNAME` en la rama publicada si la publicación es desde `main`.
+3. Después, en el panel DNS de tu registrador, si usás `www.tudominio.com`, creá un `CNAME` para `www` apuntando a `santiagorochanovas.github.io` (sin `/mashup-match`). Si también querés el dominio raíz `tudominio.com`, configurá los registros `A` de GitHub para `@`:
 
-## Sin cambios en Supabase SQL ni en `config.js`
+```
+185.199.108.153
+185.199.109.153
+185.199.110.153
+185.199.111.153
+```
 
-- Guardamos **sólo** el título, artista, álbum, año y URL externa de portada en la tabla que ya existe.
-- No almacenamos imágenes ni archivos MP3.
-- Las portadas son enlaces a Cover Art Archive. Puede que algún lanzamiento no tenga portada; la vista previa lo indica.
-- Los datos de MusicBrainz pueden contener reediciones y grabaciones duplicadas. La selección manual y la revisión son parte del flujo.
-- Si tu sesión se cierra mientras buscás, iniciá sesión nuevamente.
+4. Cuando el DNS se propague, en `Settings > Pages` activá `Enforce HTTPS`. El DNS puede tardar hasta 24 horas. Comprobá ambos nombres con y sin `www` según los DNS que hayas configurado.
+5. Como publicamos desde una rama, dejá que GitHub maneje el archivo `CNAME`. Si publicás actualizaciones posteriores, **no borres** ese archivo de tu repositorio.
 
-**Limitación:** el buscador no estima BPM ni tonalidad; esos campos los seguís verificando vos. Las pruebas incluidas verifican el código con datos simulados, pero no pueden garantizar el estado en vivo de las APIs externas.
+Documentación oficial: https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site
 
-Referencias: https://musicbrainz.org/doc/MusicBrainz_API · https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting · https://musicbrainz.org/doc/Cover_Art_Archive/API · https://supabase.com/docs/guides/functions/quickstart-dashboard
+## Nota sobre MusicBrainz y las donaciones
+
+MusicBrainz ofrece su servicio web sin costo para usos no comerciales. Como ahora podrías recibir donaciones, verificá con MusicBrainz si tu uso concreto continúa dentro de sus condiciones antes de monetizar o ampliar tráfico; algunos datos tienen licencias distintas de los datos básicos. La V1.6 **no modifica** tu Edge Function, tu base ni las portadas que ya tienes.
+
+Fuentes: https://musicbrainz.org/doc/MusicBrainz_API ; https://musicbrainz.org/doc/About/Data_License

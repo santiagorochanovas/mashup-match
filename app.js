@@ -244,9 +244,9 @@ async function loadSongs() {
       ? sb.from('songs').select('*', { count:'exact' })
       : sb.from('songs').select('*');
     query = query
-      .order('artist')
-      .order('title')
-      .order('id')
+      // Orden estable al recuperar por bloques; no se pierden canciones con miles de filas.
+      .order('created_at', { ascending:false })
+      .order('id', { ascending:false })
       .range(from, from + batchSize - 1);
 
     const { data, error, count } = await query;
@@ -279,6 +279,14 @@ function filteredSongs() {
   });
   const sort = els.sort.value;
   list.sort((a,b) => {
+    // El campo created_at registra cuándo se agregó la canción, NO su año de edición.
+    // Desempate por id para resultados consistentes al paginar.
+    if (sort === 'newest' || sort === 'oldest') {
+      const aTime = new Date(a.created_at || 0).getTime() || 0;
+      const bTime = new Date(b.created_at || 0).getTime() || 0;
+      const delta = sort === 'newest' ? bTime - aTime : aTime - bTime;
+      return delta || String(a.id || '').localeCompare(String(b.id || ''));
+    }
     if (sort === 'bpm') return Number(a.bpm) - Number(b.bpm);
     if (sort === 'year') return Number(b.year || 0) - Number(a.year || 0);
     return String(a[sort] || '').localeCompare(String(b[sort] || ''), 'es', {sensitivity:'base'});
@@ -953,7 +961,7 @@ els.keyMode.addEventListener('change', resetPageAndRender);
 
 els.clearFilters.addEventListener('click', () => {
   els.search.value=''; els.keyFilter.value=''; els.keyMode.value='exact'; els.keyMode.disabled=true;
-  els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='title'; resetPageAndRender();
+  els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='newest'; resetPageAndRender();
 });
 els.catalogTab.addEventListener('click', () => setView('catalog'));
 els.explorerTab.addEventListener('click', () => setView('explorer'));

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=1.5" />
+  <link rel="stylesheet" href="styles.css?v=1.6" />
 </head>
 <body>
   <header class="topbar">
@@ -18,7 +18,10 @@
         <button id="explorerTab" class="view-tab" type="button" aria-selected="false">◎ Explorador armónico</button>
       </nav>
     </div>
-    <button id="adminToggle" class="ghost">Administrar</button>
+    <div class="topbar-actions">
+      <a id="donateHeader" class="support-pill hidden" href="#" target="_blank" rel="noopener noreferrer" aria-label="Apoyar voluntariamente a Mashup Match">☕ Apoyar el proyecto</a>
+      <button id="adminToggle" class="ghost">Administrar</button>
+    </div>
   </header>
 
   <main class="container">
@@ -54,6 +57,8 @@
         <div>
           <label for="sort">Ordenar</label>
           <select id="sort">
+            <option value="newest" selected>Novedades (primero las nuevas)</option>
+            <option value="oldest">Más antiguas primero</option>
             <option value="title">Título</option>
             <option value="artist">Artista</option>
             <option value="bpm">BPM</option>
@@ -235,6 +240,11 @@
     </section>
   </main>
 
+  <footer id="supportFooter" class="site-footer hidden">
+    <p><strong>Mashup Match es gratis y siempre lo será.</strong> Si te resulta útil para tus mezclas, podés apoyar voluntariamente su mantenimiento.</p>
+    <a id="donateFooter" class="support-footer-link hidden" href="#" target="_blank" rel="noopener noreferrer">☕ Invitarme un café</a>
+  </footer>
+
   <dialog id="songDialog">
     <button id="closeDialog" class="dialog-close" aria-label="Cerrar">×</button>
     <div id="dialogContent"></div>
@@ -242,6 +252,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=1.5"></script>
+  <script src="support-config.js"></script>
+  <script src="donations.js?v=1.6"></script>
+  <script src="app.js?v=1.6"></script>
 </body>
 </html>

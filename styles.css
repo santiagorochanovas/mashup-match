@@ -289,3 +289,20 @@ select:disabled, button:disabled { opacity: .5; cursor: not-allowed; }
   .metadata-review-body { grid-template-columns:1fr; }
   .metadata-art { margin:auto; }
 }
+
+
+/* V1.6 - Nuevos ingresos por defecto + donaciones opcionales, sin invadir portadas */
+.topbar-actions { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+.support-pill, .support-footer-link { display:inline-flex; align-items:center; justify-content:center; gap:.3rem; text-decoration:none; font-weight:750; border-radius:12px; transition:background .15s ease, border-color .15s ease; }
+.support-pill { padding:.78rem 1rem; border:1px solid #416647; background:rgba(155,255,107,.07); color:var(--accent); white-space:nowrap; }
+.support-pill:hover { background:rgba(155,255,107,.15); border-color:var(--accent); }
+.site-footer { max-width:1150px; margin:0 auto 2.5rem; padding:1.5rem 1.25rem; border-top:1px solid var(--border); color:var(--muted); display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.site-footer p { margin:0; max-width:750px; font-size:.92rem; line-height:1.6; }
+.site-footer strong { color:var(--text); }
+.support-footer-link { padding:.65rem .95rem; border:1px solid var(--border); color:var(--text); white-space:nowrap; }
+.support-footer-link:hover { border-color:var(--accent); color:var(--accent); }
+@media (max-width:760px) {
+  .topbar > .topbar-actions { align-self:stretch; justify-content:flex-start; margin-top:0; }
+  .topbar-actions #adminToggle { margin-left:auto; }
+  .site-footer { justify-content:center; text-align:center; }
+}
