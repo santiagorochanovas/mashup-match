@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=1.4" />
 </head>
 <body>
   <header class="topbar">
@@ -13,11 +13,17 @@
       <p class="eyebrow">CATÁLOGO PARA MASHUPS</p>
       <h1>Mashup Match</h1>
       <p class="subtitle">Encontrá canciones compatibles por tonalidad, BPM y rueda Camelot.</p>
+      <nav class="view-tabs" aria-label="Secciones principales">
+        <button id="catalogTab" class="view-tab active" type="button" aria-selected="true">♫ Catálogo</button>
+        <button id="explorerTab" class="view-tab" type="button" aria-selected="false">◎ Explorador armónico</button>
+      </nav>
     </div>
     <button id="adminToggle" class="ghost">Administrar</button>
   </header>
 
   <main class="container">
+    <section id="status" class="status hidden"></section>
+    <div id="catalogView" class="view-section">
     <section class="panel search-panel">
       <div class="search-main">
         <label for="search">Buscar</label>
@@ -61,7 +67,26 @@
       </div>
     </section>
 
-    <section id="harmonicExplorer" class="panel harmonic-panel">
+    <section id="songGrid" class="grid" aria-live="polite"></section>
+
+    <nav id="pagination" class="pagination hidden" aria-label="Páginas del catálogo">
+      <div class="pagination-meta">
+        <span id="pageInfo" class="muted"></span>
+        <label for="pageSize">Mostrar
+          <select id="pageSize">
+            <option value="12">12</option>
+            <option value="24" selected>24</option>
+            <option value="48">48</option>
+            <option value="96">96</option>
+          </select>
+          por página
+        </label>
+      </div>
+      <div id="pageButtons" class="page-buttons"></div>
+    </nav>
+    </div>
+
+    <section id="harmonicExplorer" class="panel harmonic-panel view-section hidden">
       <div class="harmonic-head">
         <div>
           <p class="eyebrow">EXPLORADOR ARMÓNICO</p>
@@ -104,8 +129,6 @@
       </div>
     </section>
 
-    <section id="status" class="status hidden"></section>
-    <section id="songGrid" class="grid" aria-live="polite"></section>
 
     <section id="adminPanel" class="panel admin-panel hidden">
       <div class="admin-head">
@@ -181,6 +204,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=1.4"></script>
 </body>
 </html>

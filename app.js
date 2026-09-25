@@ -23,11 +23,16 @@ const sb = hasConfig ? window.supabase.createClient(config.SUPABASE_URL, publicK
 let songs = [];
 let currentUser = null;
 let csvImportRows = [];
+let currentPage = 1;
+let pageSize = 24;
+let currentView = 'catalog';
 
 const $ = (id) => document.getElementById(id);
 const els = {
   search: $('search'), keyFilter: $('keyFilter'), keyMode: $('keyMode'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), sort: $('sort'),
   clearFilters: $('clearFilters'), resultCount: $('resultCount'), songGrid: $('songGrid'), status: $('status'),
+  catalogTab: $('catalogTab'), explorerTab: $('explorerTab'), catalogView: $('catalogView'),
+  pagination: $('pagination'), pageInfo: $('pageInfo'), pageSize: $('pageSize'), pageButtons: $('pageButtons'),
   harmonicKey: $('harmonicKey'), harmonicMode: $('harmonicMode'), harmonicWheel: $('harmonicWheel'), harmonicIntro: $('harmonicIntro'),
   harmonicSummary: $('harmonicSummary'), applyHarmonicFilter: $('applyHarmonicFilter'), clearHarmonic: $('clearHarmonic'), harmonicExplorer: $('harmonicExplorer'),
   adminToggle: $('adminToggle'), adminPanel: $('adminPanel'), loginBox: $('loginBox'), songForm: $('songForm'),
@@ -189,9 +194,11 @@ function renderHarmonicExplorer() {
 
 function useHarmonicSearch(baseKey, mode='safe') {
   if (!baseKey) return;
+  setView('catalog');
   els.keyFilter.value = baseKey;
   els.keyMode.value = mode;
   els.keyMode.disabled = false;
+  currentPage = 1;
   render();
   document.querySelector('.search-panel')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
@@ -213,13 +220,38 @@ async function loadSongs() {
     return;
   }
   hideStatus();
-  const { data, error } = await sb.from('songs').select('*').order('artist').order('title');
-  if (error) return showStatus('No pude cargar las canciones: ' + error.message, true);
-  songs = data || [];
+
+  // Supabase suele limitar la cantidad de filas devueltas por una sola petición.
+  // Las traemos por bloques para que un catálogo de más de 1000 canciones siga completo.
+  const batchSize = 1000;
+  let from = 0;
+  let total = null;
+  const allSongs = [];
+
+  while (total === null || allSongs.length < total) {
+    let query = total === null
+      ? sb.from('songs').select('*', { count:'exact' })
+      : sb.from('songs').select('*');
+    query = query
+      .order('artist')
+      .order('title')
+      .order('id')
+      .range(from, from + batchSize - 1);
+
+    const { data, error, count } = await query;
+    if (error) return showStatus('No pude cargar las canciones: ' + error.message, true);
+    if (total === null) total = count ?? (data?.length || 0);
+    if (!data?.length) break;
+    allSongs.push(...data);
+    from += data.length;
+    if (data.length < batchSize && allSongs.length >= total) break;
+  }
+
+  songs = allSongs;
+  currentPage = 1;
   render();
   renderHarmonicExplorer();
 }
-
 function filteredSongs() {
   const q = els.search.value.trim().toLowerCase();
   const key = els.keyFilter.value;
@@ -243,14 +275,78 @@ function filteredSongs() {
   return list;
 }
 
+function setView(view) {
+  currentView = view === 'explorer' ? 'explorer' : 'catalog';
+  const showCatalog = currentView === 'catalog';
+  els.catalogView.classList.toggle('hidden', !showCatalog);
+  els.harmonicExplorer.classList.toggle('hidden', showCatalog);
+  els.catalogTab.classList.toggle('active', showCatalog);
+  els.explorerTab.classList.toggle('active', !showCatalog);
+  els.catalogTab.setAttribute('aria-selected', String(showCatalog));
+  els.explorerTab.setAttribute('aria-selected', String(!showCatalog));
+  if (!showCatalog) renderHarmonicExplorer();
+}
+
+function resetPageAndRender() {
+  currentPage = 1;
+  render();
+}
+
+function paginationPages(totalPages, page) {
+  if (totalPages <= 7) return Array.from({length: totalPages}, (_, i) => i + 1);
+  const pages = new Set([1, totalPages, page - 1, page, page + 1]);
+  const valid = [...pages].filter(n => n >= 1 && n <= totalPages).sort((a,b) => a-b);
+  const result = [];
+  valid.forEach((n, i) => {
+    if (i && n - valid[i-1] > 1) result.push('…');
+    result.push(n);
+  });
+  return result;
+}
+
+function renderPagination(totalItems) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  currentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const start = totalItems ? (currentPage - 1) * pageSize + 1 : 0;
+  const end = Math.min(currentPage * pageSize, totalItems);
+
+  els.pageSize.value = String(pageSize);
+  els.pageInfo.textContent = totalItems
+    ? `Mostrando ${start}–${end} de ${totalItems}`
+    : '0 canciones';
+
+  if (totalItems <= pageSize) {
+    els.pagination.classList.add('hidden');
+    els.pageButtons.innerHTML = '';
+    return;
+  }
+
+  els.pagination.classList.remove('hidden');
+  const pages = paginationPages(totalPages, currentPage);
+  els.pageButtons.innerHTML = `
+    <button type="button" class="page-nav" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} aria-label="Página anterior">‹</button>
+    ${pages.map(p => p === '…'
+      ? '<span class="page-ellipsis">…</span>'
+      : `<button type="button" class="page-number ${p === currentPage ? 'active' : ''}" data-page="${p}" ${p === currentPage ? 'aria-current="page"' : ''}>${p}</button>`
+    ).join('')}
+    <button type="button" class="page-nav" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Página siguiente">›</button>`;
+}
+
 function render() {
   const list = filteredSongs();
   els.resultCount.textContent = `${list.length} canción${list.length === 1 ? '' : 'es'}`;
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  currentPage = Math.min(currentPage, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = list.slice(start, start + pageSize);
+
   if (!list.length) {
     els.songGrid.innerHTML = `<div class="empty">No hay resultados con esos filtros.</div>`;
+    renderPagination(0);
     return;
   }
-  els.songGrid.innerHTML = list.map(song => `
+
+  els.songGrid.innerHTML = pageItems.map(song => `
     <article class="card">
       ${cover(song)}
       <div class="card-body">
@@ -268,8 +364,8 @@ function render() {
         </div>
       </div>
     </article>`).join('');
+  renderPagination(list.length);
 }
-
 function compatibleKeyScore(a, b) {
   return harmonicRelation(a, b).score;
 }
@@ -685,20 +781,34 @@ async function deleteSong(id) {
 }
 
 ['input','change'].forEach(evt => {
-  els.search.addEventListener(evt, render);
-  els.bpmMin.addEventListener(evt, render);
-  els.bpmMax.addEventListener(evt, render);
-  els.sort.addEventListener(evt, render);
+  els.search.addEventListener(evt, resetPageAndRender);
+  els.bpmMin.addEventListener(evt, resetPageAndRender);
+  els.bpmMax.addEventListener(evt, resetPageAndRender);
+  els.sort.addEventListener(evt, resetPageAndRender);
 });
 els.keyFilter.addEventListener('change', () => {
   els.keyMode.disabled = !els.keyFilter.value;
-  render();
+  resetPageAndRender();
 });
-els.keyMode.addEventListener('change', render);
+els.keyMode.addEventListener('change', resetPageAndRender);
 
 els.clearFilters.addEventListener('click', () => {
   els.search.value=''; els.keyFilter.value=''; els.keyMode.value='exact'; els.keyMode.disabled=true;
-  els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='title'; render();
+  els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='title'; resetPageAndRender();
+});
+els.catalogTab.addEventListener('click', () => setView('catalog'));
+els.explorerTab.addEventListener('click', () => setView('explorer'));
+els.pageSize.addEventListener('change', () => {
+  pageSize = Number(els.pageSize.value) || 24;
+  currentPage = 1;
+  render();
+});
+els.pageButtons.addEventListener('click', (e) => {
+  const button = e.target.closest('[data-page]');
+  if (!button || button.disabled) return;
+  currentPage = Number(button.dataset.page) || 1;
+  render();
+  document.querySelector('.search-panel')?.scrollIntoView({ behavior:'smooth', block:'start' });
 });
 els.adminToggle.addEventListener('click', () => els.adminPanel.classList.toggle('hidden'));
 els.loginBtn.addEventListener('click', login);
@@ -714,6 +824,7 @@ els.dialog.addEventListener('click', (e) => {
   if (e.target === els.dialog) return els.dialog.close();
   const explore = e.target.closest('[data-explore-key]');
   if (explore) {
+    setView('explorer');
     els.harmonicKey.value = explore.dataset.exploreKey;
     renderHarmonicExplorer();
     els.dialog.close();
@@ -758,6 +869,7 @@ els.songGrid.addEventListener('click', (e) => {
 });
 
 initKeySelects();
+setView('catalog');
 renderHarmonicExplorer();
 loadSongs();
 updateAuthUI();
