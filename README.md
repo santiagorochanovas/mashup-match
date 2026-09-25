@@ -1,41 +1,55 @@
-# Mashup Match · V1.4
+# Mashup Match V1.5 · Autocompletar con MusicBrainz
 
-Catálogo musical para mashups con búsqueda por BPM, tonalidad/Camelot, importación CSV y Explorador Armónico.
+Esta versión **conserva** las pestañas, el buscador, el Explorador Armónico, la paginación y el importador CSV de V1.4. Agrega un buscador de metadatos dentro de **Administrar**. No modifica la tabla `songs`, ni elimina datos existentes.
 
-## Novedades de V1.4
+## Actualizar la web en GitHub (4 archivos)
 
-- **Catálogo y Explorador Armónico separados en pestañas.** La portada vuelve a priorizar las carátulas y el buscador.
-- **Paginación del catálogo.** Por defecto muestra 24 canciones por página, con opciones de 12, 24, 48 o 96.
-- **Paginación compatible con filtros.** Cuando buscás, cambiás BPM, tonalidad u orden, vuelve automáticamente a la página 1 y pagina solamente los resultados.
-- **Catálogos de más de 1000 canciones.** La aplicación ahora consulta Supabase por bloques para no depender del límite habitual de filas de una única petición.
-- **Carga diferida de portadas.** Las imágenes siguen usando `loading="lazy"` y, gracias a la paginación, solamente se crean las tarjetas de la página visible.
-- **Navegación cruzada.** “Abrir en Explorador Armónico” cambia a la pestaña del explorador, y “Buscar estas tonalidades” vuelve al catálogo con el filtro aplicado.
-- **Cache busting.** `index.html` usa `?v=1.4` para `app.js` y `styles.css`, reduciendo los casos en los que GitHub Pages muestra recursos viejos en caché.
-
-## Actualizar desde V1.3
-
-Subí/reemplazá en GitHub estos archivos:
+En tu repositorio `mashup-match`, reemplazá **solamente** estos archivos por los del ZIP de actualización:
 
 - `index.html`
 - `styles.css`
 - `app.js`
-- `README.md`
+- `README.md` (opcional, sólo documentación)
 
-`plantilla-canciones.csv` puede mantenerse como está.
+No reemplaces `config.js`, no vuelvas a ejecutar `supabase.sql` y no hace falta modificar tus canciones actuales. Cuando GitHub Pages termine de publicar, recargá la página (Ctrl+F5 si seguís viendo la anterior).
 
-**No reemplaces `config.js`** si ya tiene tu URL y tu Publishable Key de Supabase.
+**Importante:** la consulta automática requiere también el paso siguiente, que se realiza **una sola vez** en Supabase.
 
-No hace falta ejecutar SQL nuevo ni cambiar la base de datos.
+## Activar la función de metadatos en Supabase
 
-## Paginación
+MusicBrainz requiere que las aplicaciones se identifiquen mediante `User-Agent` y respeten un máximo de 1 petición por segundo. Como desde JavaScript del navegador no se puede configurar ese encabezado correctamente, las búsquedas pasan por una pequeña **Supabase Edge Function**. Así mantenemos el hosting gratuito, no publicamos ninguna clave privada y las búsquedas sólo están disponibles para usuarios conectados.
 
-La cantidad predeterminada es **24 canciones por página**. El usuario puede elegir 12, 24, 48 o 96. Si hay 24 canciones o menos, los controles de páginas se ocultan automáticamente.
+1. Entrá a tu proyecto de Supabase.
+2. En el menú izquierdo abrí **Edge Functions**.
+3. Elegí **Deploy a new function → Via Editor** (crear desde el editor).
+4. Poné exactamente este nombre: **`music-metadata`**.
+5. Borrá el código de ejemplo y pegá **todo** el contenido del archivo `edge-function/music-metadata/index.ts` incluido en este ZIP.
+6. Pulsá **Deploy function**. Podés dejar habilitada la opción predeterminada de **Verify JWT**; la web invoca la función estando conectada como administrador. No tenés que agregar variables ni claves secretas nuevas.
 
-Ejemplos:
+El código incluye autorización con Supabase Auth, compatibilidad CORS para GitHub Pages, una cola por instancia para espaciar búsquedas y mensajes de error. Está diseñado para **consultas manuales de un administrador**, no para analizar o importar catálogos enteros de golpe.
 
-- 14 canciones → una sola vista, sin paginador.
-- 25 canciones → 2 páginas a 24 por página.
-- 100 canciones → 5 páginas a 24 por página.
-- 1000 canciones → 42 páginas a 24 por página.
+> Si vas a monetizar/comercializar Mashup Match, verificá primero las condiciones de uso comercial de MusicBrainz y los derechos de las portadas.
 
-La búsqueda, los filtros de BPM/tonalidad y el ordenamiento se aplican antes de paginar.
+## Cómo probarlo con “Bad Romance”
+
+1. Entrá a tu web > **Administrar** e iniciá sesión.
+2. En **Autocompletar con MusicBrainz**, buscá canción **Bad Romance** y artista **Lady Gaga**.
+3. Elegí la grabación correspondiente entre los resultados (puede haber diferentes versiones).
+4. Seleccioná **The Fame Monster**, si aparece entre los álbumes de ese resultado. MusicBrainz puede devolver grabaciones asociadas a diferentes lanzamientos.
+5. La web comprueba si existe una portada en Cover Art Archive. Si no existe, dejá el campo de portada manual. Revisá el año sugerido: es el del lanzamiento elegido.
+6. Pulsá **Aplicar al formulario**. Los datos se completan en campos vacíos, **sin guardar**. BPM, tonalidad, versión y notas permanecen exactamente como estaban.
+7. Si querés reemplazar un campo ya completado, marcá la casilla **También reemplazar los campos que ya completé** antes de aplicar. Revisá todo y pulsá el **Guardar canción** habitual.
+
+Para completar la portada o el álbum de una de tus canciones actuales, pulsá **Editar** en su tarjeta y después **Usar datos del formulario**. El botón no cambia los datos hasta que elijas el resultado, apliques y guardes. Si no te convence la sugerencia, **Descartar**.
+
+## Sin cambios en Supabase SQL ni en `config.js`
+
+- Guardamos **sólo** el título, artista, álbum, año y URL externa de portada en la tabla que ya existe.
+- No almacenamos imágenes ni archivos MP3.
+- Las portadas son enlaces a Cover Art Archive. Puede que algún lanzamiento no tenga portada; la vista previa lo indica.
+- Los datos de MusicBrainz pueden contener reediciones y grabaciones duplicadas. La selección manual y la revisión son parte del flujo.
+- Si tu sesión se cierra mientras buscás, iniciá sesión nuevamente.
+
+**Limitación:** el buscador no estima BPM ni tonalidad; esos campos los seguís verificando vos. Las pruebas incluidas verifican el código con datos simulados, pero no pueden garantizar el estado en vivo de las APIs externas.
+
+Referencias: https://musicbrainz.org/doc/MusicBrainz_API · https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting · https://musicbrainz.org/doc/Cover_Art_Archive/API · https://supabase.com/docs/guides/functions/quickstart-dashboard

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=1.4" />
+  <link rel="stylesheet" href="styles.css?v=1.5" />
 </head>
 <body>
   <header class="topbar">
@@ -148,6 +148,44 @@
         </div>
       </div>
 
+      <section id="metadataBox" class="metadata-box hidden" aria-labelledby="metadataTitle">
+        <div class="section-divider"></div>
+        <div class="metadata-heading">
+          <div>
+            <p class="eyebrow">V1.5 · AHORRÁ TIEMPO</p>
+            <h3 id="metadataTitle">Autocompletar con MusicBrainz</h3>
+            <p class="muted">Buscá una grabación y elegí el lanzamiento. Nada se guarda sin que lo revises.</p>
+          </div>
+          <a href="https://musicbrainz.org/" target="_blank" rel="noopener noreferrer" class="muted metadata-credit">Datos: MusicBrainz ↗</a>
+        </div>
+        <div class="metadata-query">
+          <div><label for="metaSong">Canción</label><input id="metaSong" autocomplete="off" placeholder="Bad Romance" /></div>
+          <div><label for="metaArtist">Artista</label><input id="metaArtist" autocomplete="off" placeholder="Lady Gaga" /></div>
+          <button id="metaSearchBtn" type="button">Buscar</button>
+          <button id="metaFromForm" class="ghost" type="button">Usar datos del formulario</button>
+        </div>
+        <div id="metaStatus" class="metadata-message muted" role="status" aria-live="polite">Usá el buscador para completar una canción nueva o una ya cargada.</div>
+        <div id="metaResults" class="metadata-results hidden" aria-label="Resultados de MusicBrainz"></div>
+        <div id="metaReview" class="metadata-review hidden">
+          <div class="metadata-review-head">
+            <div><p class="eyebrow">REVISÁ ANTES DE APLICAR</p><h4 id="metaChosenTitle"></h4><p id="metaChosenArtist" class="muted"></p></div>
+            <button id="metaCancelBtn" class="ghost" type="button">Descartar</button>
+          </div>
+          <div class="metadata-review-body">
+            <div class="metadata-art" id="metaArt" aria-label="Vista previa de portada"><div class="cover-placeholder">♫</div></div>
+            <div class="metadata-options">
+              <label for="metaRelease">Lanzamiento / álbum</label>
+              <select id="metaRelease"></select>
+              <p id="metaYearPreview" class="muted"></p>
+              <p id="metaCoverState" class="muted" aria-live="polite"></p>
+              <label class="check-row" for="metaOverwrite"><input type="checkbox" id="metaOverwrite"/><span>También reemplazar los campos que ya completé</span></label>
+              <button id="metaApplyBtn" type="button">Aplicar al formulario</button>
+              <p class="muted metadata-small">BPM y tonalidad nunca se modifican. Confirmá la versión y el año antes de guardar.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <form id="songForm" class="song-form hidden">
         <input id="songId" type="hidden" />
         <div><label>Título *</label><input id="title" required /></div>
@@ -204,6 +242,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=1.4"></script>
+  <script src="app.js?v=1.5"></script>
 </body>
 </html>

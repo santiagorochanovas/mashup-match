@@ -26,6 +26,12 @@ let csvImportRows = [];
 let currentPage = 1;
 let pageSize = 24;
 let currentView = 'catalog';
+let metadataCandidates = [];
+let chosenMetadata = null;
+let chosenRelease = null;
+let metadataCoverReady = false;
+let metadataCoverCheck = 0;
+let metadataBusy = false;
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -41,7 +47,12 @@ const els = {
   cancelEdit: $('cancelEdit'), dialog: $('songDialog'), dialogContent: $('dialogContent'), closeDialog: $('closeDialog'),
   importBox: $('importBox'), csvFile: $('csvFile'), csvFileName: $('csvFileName'), skipDuplicates: $('skipDuplicates'),
   importSummary: $('importSummary'), importPreview: $('importPreview'), importControls: $('importControls'),
-  importCsvBtn: $('importCsvBtn'), clearCsvBtn: $('clearCsvBtn')
+  importCsvBtn: $('importCsvBtn'), clearCsvBtn: $('clearCsvBtn'),
+  metadataBox: $('metadataBox'), metaSong: $('metaSong'), metaArtist: $('metaArtist'), metaSearchBtn: $('metaSearchBtn'),
+  metaFromForm: $('metaFromForm'), metaStatus: $('metaStatus'), metaResults: $('metaResults'), metaReview: $('metaReview'),
+  metaChosenTitle: $('metaChosenTitle'), metaChosenArtist: $('metaChosenArtist'), metaRelease: $('metaRelease'),
+  metaArt: $('metaArt'), metaYearPreview: $('metaYearPreview'), metaCoverState: $('metaCoverState'),
+  metaOverwrite: $('metaOverwrite'), metaApplyBtn: $('metaApplyBtn'), metaCancelBtn: $('metaCancelBtn')
 };
 
 function initKeySelects() {
@@ -715,6 +726,8 @@ async function updateAuthUI() {
   els.loginBox.classList.toggle('hidden', Boolean(currentUser));
   els.songForm.classList.toggle('hidden', !currentUser);
   els.importBox.classList.toggle('hidden', !currentUser);
+  els.metadataBox.classList.toggle('hidden', !currentUser);
+  if (!currentUser) resetMetadataLookup();
   els.logoutBtn.classList.toggle('hidden', !currentUser);
   render();
 }
@@ -738,6 +751,7 @@ function resetForm() {
   els.songForm.reset();
   els.songId.value = '';
   els.cancelEdit.classList.add('hidden');
+  resetMetadataLookup();
 }
 
 function editSong(song) {
@@ -752,6 +766,9 @@ function editSong(song) {
   els.coverUrl.value = song.cover_url || '';
   els.notes.value = song.notes || '';
   els.cancelEdit.classList.remove('hidden');
+  resetMetadataLookup();
+  els.metaSong.value = song.title || '';
+  els.metaArtist.value = song.artist || '';
   els.adminPanel.scrollIntoView({behavior:'smooth'});
 }
 
@@ -778,6 +795,148 @@ async function deleteSong(id) {
   const { error } = await sb.from('songs').delete().eq('id', id);
   if (error) return showStatus('No pude borrar: ' + error.message, true);
   await loadSongs();
+}
+
+
+// V1.5 · Autocompletado: sólo propone datos; jamás guarda ni modifica BPM/key.
+function metaMessage(message, error = false) {
+  els.metaStatus.textContent = message;
+  els.metaStatus.classList.toggle('metadata-error', error);
+}
+function resetMetadataLookup(clearQuery = false) {
+  metadataCandidates = [];
+  chosenMetadata = null;
+  chosenRelease = null;
+  metadataCoverReady = false;
+  ++metadataCoverCheck; // descarta eventos tardíos de imágenes antiguas
+  els.metaResults.innerHTML = '';
+  els.metaResults.classList.add('hidden');
+  els.metaReview.classList.add('hidden');
+  els.metaOverwrite.checked = false;
+  if (clearQuery) { els.metaSong.value = ''; els.metaArtist.value = ''; }
+  metaMessage('Buscá una canción o usá el título y artista que ya escribiste.');
+}
+function metadataLoading(loading) {
+  metadataBusy = loading;
+  els.metaSearchBtn.disabled = loading;
+  els.metaFromForm.disabled = loading;
+  els.metaApplyBtn.disabled = loading;
+  els.metaResults.querySelectorAll('button').forEach(btn => btn.disabled = loading);
+}
+async function metadataInvoke(body) {
+  // La Edge Function valida que exista sesión; nunca usa una clave secreta en el navegador.
+  const { data, error } = await sb.functions.invoke('music-metadata', { body });
+  if (error) {
+    let message = error.message || 'No pude consultar MusicBrainz.';
+    if (error.context instanceof Response) {
+      const details = await error.context.clone().json().catch(() => null);
+      message = details?.error || details?.message || message;
+      if (error.context.status === 404) message = 'Falta instalar la función music-metadata en Supabase. Seguí el README.';
+    }
+    throw new Error(message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+async function searchMetadata() {
+  if (!currentUser || metadataBusy) return;
+  const title = els.metaSong.value.trim();
+  const artist = els.metaArtist.value.trim();
+  if (!title || !artist) return metaMessage('Completá canción y artista para buscar.', true);
+  resetMetadataLookup();
+  metaMessage(`Buscando «${title}» de ${artist}…`);
+  metadataLoading(true);
+  try {
+    const response = await metadataInvoke({ action: 'search', title, artist });
+    metadataCandidates = Array.isArray(response?.results) ? response.results : [];
+    if (!metadataCandidates.length) return metaMessage('No hubo coincidencias. Probá un título más corto o revisá la escritura.');
+    els.metaResults.innerHTML = metadataCandidates.map((item, i) => `
+      <button type="button" class="metadata-result" data-meta-pick="${i}">
+        <span class="metadata-result-icon">♫</span><span><strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.artist)}${item.comment ? ' · ' + escapeHtml(item.comment) : ''}${item.firstDate ? ' · ' + escapeHtml(item.firstDate.slice(0,4)) : ''}</small></span>
+        <span class="metadata-arrow">Elegir ↗</span>
+      </button>`).join('');
+    els.metaResults.classList.remove('hidden');
+    metaMessage(`Encontré ${metadataCandidates.length} grabaciones. Elegí la que corresponda.`);
+  } catch (error) {
+    metaMessage(`No se pudo buscar: ${error.message}`, true);
+  } finally {
+    metadataLoading(false);
+  }
+}
+function releaseLabel(item) {
+  return [item.album || 'Sin título de álbum', item.kind ? `(${item.kind})` : '', item.year || ''].filter(Boolean).join(' ');
+}
+function updateReleasePreview() {
+  if (!chosenMetadata) return;
+  chosenRelease = chosenMetadata.releases[Number(els.metaRelease.value)] || null;
+  const album = chosenRelease?.album || 'Sin información de álbum';
+  const year = chosenRelease?.year || chosenMetadata.firstDate?.slice(0, 4) || '';
+  els.metaYearPreview.textContent = `Álbum: ${album}${year ? ` · Año sugerido: ${year}` : ' · Año: sin información'}`;
+  metadataCoverReady = false;
+  const token = ++metadataCoverCheck;
+  els.metaArt.innerHTML = '<div class="metadata-art-placeholder">♫</div>';
+  const url = chosenRelease?.cover || '';
+  if (!url) return void (els.metaCoverState.textContent = 'No hay portada asociada; podés ingresar una URL manualmente.');
+  els.metaCoverState.textContent = 'Comprobando si esta portada está disponible…';
+  const img = new Image();
+  img.alt = `Portada de ${album}`;
+  img.onload = () => {
+    if (token !== metadataCoverCheck) return;
+    metadataCoverReady = true;
+    els.metaArt.replaceChildren(img);
+    els.metaCoverState.textContent = 'Portada disponible ✓';
+  };
+  img.onerror = () => {
+    if (token !== metadataCoverCheck) return;
+    els.metaCoverState.textContent = 'No se encontró portada para este lanzamiento. Podés elegir otro o pegarla manualmente.';
+  };
+  img.src = url;
+}
+async function selectMetadata(index) {
+  if (!currentUser || metadataBusy || !metadataCandidates[index]) return;
+  metadataLoading(true);
+  metaMessage('Consultando álbumes y versiones de esta grabación…');
+  try {
+    const item = metadataCandidates[index];
+    const data = await metadataInvoke({ action: 'details', id: item.id });
+    chosenMetadata = data;
+    if (!Array.isArray(chosenMetadata.releases)) chosenMetadata.releases = [];
+    els.metaChosenTitle.textContent = data.title || item.title;
+    els.metaChosenArtist.textContent = data.artist || item.artist;
+    els.metaRelease.innerHTML = chosenMetadata.releases.length
+      ? chosenMetadata.releases.map((release, i) => `<option value="${i}">${escapeHtml(releaseLabel(release))}</option>`).join('')
+      : '<option value="0">No se encontraron álbumes; completar a mano</option>';
+    els.metaReview.classList.remove('hidden');
+    updateReleasePreview();
+    metaMessage('Revisá la versión, el álbum, el año y la portada antes de aplicar.');
+  } catch (error) {
+    metaMessage(`No se pudieron consultar los detalles: ${error.message}`, true);
+  } finally {
+    metadataLoading(false);
+  }
+}
+function applyMetadata() {
+  if (!currentUser || !chosenMetadata || metadataBusy) return;
+  const overwrite = els.metaOverwrite.checked;
+  const values = [
+    [els.title, chosenMetadata.title], [els.artist, chosenMetadata.artist],
+    [els.album, chosenRelease?.album],
+    [els.year, chosenRelease?.year || chosenMetadata.firstDate?.slice(0,4)],
+    [els.coverUrl, metadataCoverReady ? chosenRelease?.cover : '']
+  ];
+  const changed = [];
+  values.forEach(([input, value]) => {
+    if (value && (overwrite || !input.value.trim())) {
+      input.value = value;
+      changed.push(input.id);
+    }
+  });
+  // Nunca tocar BPM, tonalidad, versión ni notas: dependen de la edición específica.
+  metaMessage(changed.length
+    ? 'Datos aplicados al formulario. Revisá los campos y guardá la canción cuando quieras.'
+    : 'No había campos vacíos. Marcá «reemplazar» si querés sobrescribir los datos actuales.');
+  els.songForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 ['input','change'].forEach(evt => {
@@ -819,6 +978,21 @@ els.csvFile.addEventListener('change', handleCsvFile);
 els.skipDuplicates.addEventListener('change', renderImportPreview);
 els.importCsvBtn.addEventListener('click', importCsvSongs);
 els.clearCsvBtn.addEventListener('click', () => clearImport());
+els.metaSearchBtn.addEventListener('click', searchMetadata);
+els.metaFromForm.addEventListener('click', () => {
+  els.metaSong.value = els.title.value.trim(); els.metaArtist.value = els.artist.value.trim();
+  searchMetadata();
+});
+[els.metaSong, els.metaArtist].forEach(input => input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); searchMetadata(); }
+}));
+els.metaResults.addEventListener('click', e => {
+  const button = e.target.closest('[data-meta-pick]');
+  if (button) selectMetadata(Number(button.dataset.metaPick));
+});
+els.metaRelease.addEventListener('change', updateReleasePreview);
+els.metaApplyBtn.addEventListener('click', applyMetadata);
+els.metaCancelBtn.addEventListener('click', () => resetMetadataLookup());
 els.closeDialog.addEventListener('click', () => els.dialog.close());
 els.dialog.addEventListener('click', (e) => {
   if (e.target === els.dialog) return els.dialog.close();
