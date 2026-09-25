@@ -12,21 +12,6 @@ Catálogo musical para mashups con búsqueda por BPM, tonalidad/Camelot, importa
 - **Navegación cruzada.** “Abrir en Explorador Armónico” cambia a la pestaña del explorador, y “Buscar estas tonalidades” vuelve al catálogo con el filtro aplicado.
 - **Cache busting.** `index.html` usa `?v=1.4` para `app.js` y `styles.css`, reduciendo los casos en los que GitHub Pages muestra recursos viejos en caché.
 
-## Actualizar desde V1.3
-
-Subí/reemplazá en GitHub estos archivos:
-
-- `index.html`
-- `styles.css`
-- `app.js`
-- `README.md`
-
-`plantilla-canciones.csv` puede mantenerse como está.
-
-**No reemplaces `config.js`** si ya tiene tu URL y tu Publishable Key de Supabase.
-
-No hace falta ejecutar SQL nuevo ni cambiar la base de datos.
-
 ## Paginación
 
 La cantidad predeterminada es **24 canciones por página**. El usuario puede elegir 12, 24, 48 o 96. Si hay 24 canciones o menos, los controles de páginas se ocultan automáticamente.
