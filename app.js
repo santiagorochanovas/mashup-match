@@ -41,7 +41,7 @@ const els = {
   pagination: $('pagination'), pageInfo: $('pageInfo'), pageSize: $('pageSize'), pageButtons: $('pageButtons'),
   harmonicKey: $('harmonicKey'), harmonicMode: $('harmonicMode'), harmonicWheel: $('harmonicWheel'), harmonicIntro: $('harmonicIntro'),
   harmonicSummary: $('harmonicSummary'), applyHarmonicFilter: $('applyHarmonicFilter'), clearHarmonic: $('clearHarmonic'), harmonicExplorer: $('harmonicExplorer'),
-  adminToggle: $('adminToggle'), adminPanel: $('adminPanel'), loginBox: $('loginBox'), songForm: $('songForm'),
+  adminToggle: $('adminToggle'), adminDialog: $('adminDialog'), closeAdminDialog: $('closeAdminDialog'), adminPanel: $('adminPanel'), adminStatus: $('adminStatus'), loginBox: $('loginBox'), songForm: $('songForm'),
   email: $('email'), password: $('password'), loginBtn: $('loginBtn'), logoutBtn: $('logoutBtn'),
   songId: $('songId'), title: $('title'), artist: $('artist'), bpm: $('bpm'), key: $('key'), version: $('version'), album: $('album'), year: $('year'), coverUrl: $('coverUrl'), notes: $('notes'),
   cancelEdit: $('cancelEdit'), dialog: $('songDialog'), dialogContent: $('dialogContent'), closeDialog: $('closeDialog'),
@@ -63,11 +63,17 @@ function initKeySelects() {
 }
 
 function showStatus(message, error = false) {
-  els.status.textContent = message;
-  els.status.classList.remove('hidden', 'error');
-  if (error) els.status.classList.add('error');
+  const target = els.adminDialog?.open && els.adminStatus ? els.adminStatus : els.status;
+  target.textContent = message;
+  target.classList.remove('hidden', 'error');
+  if (error) target.classList.add('error');
 }
-function hideStatus() { els.status.classList.add('hidden'); }
+function hideStatus() {
+  [els.status, els.adminStatus].filter(Boolean).forEach(target => {
+    target.classList.add('hidden');
+    target.classList.remove('error');
+  });
+}
 
 function keyName(camelot) { return KEYS.find(k => k.camelot === camelot)?.name || camelot || '—'; }
 
@@ -258,7 +264,7 @@ async function loadSongs() {
     if (data.length < batchSize && allSongs.length >= total) break;
   }
 
-  songs = allSongs;
+  songs = allSongs.map(song => ({ ...song, title: formatSongTitle(song.title) }));
   currentPage = 1;
   render();
   renderHarmonicExplorer();
@@ -462,6 +468,18 @@ function openDetails(song) {
 }
 
 
+// V1.7 · Capitaliza el inicio de cada palabra sin destruir estilizaciones internas ya escritas.
+// Ej.: "Just the way you are" -> "Just The Way You Are" y "TiK ToK" conserva sus mayúsculas internas.
+function formatSongTitle(value='') {
+  return String(value || '')
+    .trim()
+    .replace(/\p{L}[\p{L}\p{M}'’]*/gu, word => {
+      // Si ya tiene una mayúscula interna (iPhone, TiK ToK, McFly), respetamos la estilización.
+      if (/\p{Lu}/u.test(word.slice(1))) return word;
+      return word.slice(0, 1).toLocaleUpperCase('es-UY') + word.slice(1);
+    });
+}
+
 function normalizeText(value='') {
   return String(value)
     .normalize('NFD')
@@ -613,7 +631,7 @@ function parseImportedRows(text) {
     if (raw.year && (!Number.isInteger(year) || year < 1900 || year > 2100)) errors.push('Año inválido');
 
     const song = {
-      title: raw.title || '',
+      title: formatSongTitle(raw.title || ''),
       artist: raw.artist || '',
       bpm: Number.isFinite(bpm) ? bpm : null,
       camelot_key: camelot || '',
@@ -727,6 +745,15 @@ async function importCsvSongs() {
   }
 }
 
+function openAdminDialog() {
+  if (!els.adminDialog.open) els.adminDialog.showModal();
+}
+
+function closeAdminDialog() {
+  if (els.adminDialog.open) els.adminDialog.close();
+  hideStatus();
+}
+
 async function updateAuthUI() {
   if (!sb) return;
   const { data } = await sb.auth.getUser();
@@ -777,14 +804,15 @@ function editSong(song) {
   resetMetadataLookup();
   els.metaSong.value = song.title || '';
   els.metaArtist.value = song.artist || '';
-  els.adminPanel.scrollIntoView({behavior:'smooth'});
+  openAdminDialog();
+  setTimeout(() => els.songForm.scrollIntoView({behavior:'smooth', block:'start'}), 30);
 }
 
 async function saveSong(event) {
   event.preventDefault();
   if (!currentUser) return;
   const payload = {
-    title: els.title.value.trim(), artist: els.artist.value.trim(), bpm: Number(els.bpm.value),
+    title: formatSongTitle(els.title.value), artist: els.artist.value.trim(), bpm: Number(els.bpm.value),
     camelot_key: els.key.value, version: els.version.value.trim() || null, album: els.album.value.trim() || null,
     year: els.year.value ? Number(els.year.value) : null,
     cover_url: els.coverUrl.value.trim() || null, notes: els.notes.value.trim() || null
@@ -928,7 +956,7 @@ function applyMetadata() {
   if (!currentUser || !chosenMetadata || metadataBusy) return;
   const overwrite = els.metaOverwrite.checked;
   const values = [
-    [els.title, chosenMetadata.title], [els.artist, chosenMetadata.artist],
+    [els.title, formatSongTitle(chosenMetadata.title)], [els.artist, chosenMetadata.artist],
     [els.album, chosenRelease?.album],
     [els.year, chosenRelease?.year || chosenMetadata.firstDate?.slice(0,4)],
     [els.coverUrl, metadataCoverReady ? chosenRelease?.cover : '']
@@ -977,7 +1005,11 @@ els.pageButtons.addEventListener('click', (e) => {
   render();
   document.querySelector('.search-panel')?.scrollIntoView({ behavior:'smooth', block:'start' });
 });
-els.adminToggle.addEventListener('click', () => els.adminPanel.classList.toggle('hidden'));
+els.adminToggle.addEventListener('click', openAdminDialog);
+els.closeAdminDialog.addEventListener('click', closeAdminDialog);
+els.adminDialog.addEventListener('click', (e) => {
+  if (e.target === els.adminDialog) closeAdminDialog();
+});
 els.loginBtn.addEventListener('click', login);
 els.logoutBtn.addEventListener('click', logout);
 els.songForm.addEventListener('submit', saveSong);

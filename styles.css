@@ -306,3 +306,18 @@ select:disabled, button:disabled { opacity: .5; cursor: not-allowed; }
   .topbar-actions #adminToggle { margin-left:auto; }
   .site-footer { justify-content:center; text-align:center; }
 }
+
+
+/* V1.7 · Administración en ventana modal + títulos normalizados */
+.field-hint { display:block; margin-top:.38rem; color:var(--muted); font-size:.74rem; line-height:1.35; }
+.admin-dialog { width:min(1040px, calc(100% - 2rem)); max-height:92vh; overflow:auto; padding:0; }
+.admin-dialog .admin-panel { margin:0; border:0; border-radius:0; box-shadow:none; background:#111318; padding:1.35rem; }
+.admin-dialog .admin-head { padding-right:3rem; }
+.admin-dialog-close { position:sticky; top:.7rem; margin:.7rem .7rem -3rem auto; display:block; float:none; }
+.admin-dialog #adminStatus { margin:.9rem 0 0; }
+.admin-dialog .metadata-box, .admin-dialog .import-box { scroll-margin-top:1rem; }
+@media (max-width:760px) {
+  .admin-dialog { width:calc(100% - 1rem); max-height:94vh; }
+  .admin-dialog .admin-panel { padding:1rem; }
+  .admin-dialog-close { margin:.5rem .5rem -2.8rem auto; }
+}

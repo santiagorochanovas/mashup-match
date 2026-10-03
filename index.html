@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=1.6" />
+  <link rel="stylesheet" href="styles.css?v=1.7" />
 </head>
 <body>
   <header class="topbar">
@@ -135,14 +135,18 @@
     </section>
 
 
-    <section id="adminPanel" class="panel admin-panel hidden">
+    <dialog id="adminDialog" class="admin-dialog" aria-labelledby="adminDialogTitle">
+      <button id="closeAdminDialog" class="dialog-close admin-dialog-close" aria-label="Cerrar administración">×</button>
+      <section id="adminPanel" class="panel admin-panel">
       <div class="admin-head">
         <div>
           <p class="eyebrow">ADMIN</p>
-          <h2>Gestionar catálogo</h2>
+          <h2 id="adminDialogTitle">Gestionar catálogo</h2>
         </div>
         <button id="logoutBtn" class="ghost hidden">Cerrar sesión</button>
       </div>
+
+      <section id="adminStatus" class="status hidden" aria-live="polite"></section>
 
       <div id="loginBox">
         <p class="muted">Iniciá sesión para agregar, editar o borrar canciones.</p>
@@ -193,7 +197,7 @@
 
       <form id="songForm" class="song-form hidden">
         <input id="songId" type="hidden" />
-        <div><label>Título *</label><input id="title" required /></div>
+        <div><label>Título *</label><input id="title" required /><small class="field-hint">Se ajusta automáticamente a Mayúscula Inicial: “Just The Way You Are”.</small></div>
         <div><label>Artista *</label><input id="artist" required /></div>
         <div><label>BPM *</label><input id="bpm" type="number" min="30" max="300" step="0.01" required /></div>
         <div><label>Tonalidad *</label><select id="key" required></select></div>
@@ -237,7 +241,8 @@
           <button id="clearCsvBtn" type="button" class="ghost">Cancelar</button>
         </div>
       </section>
-    </section>
+      </section>
+    </dialog>
   </main>
 
   <footer id="supportFooter" class="site-footer hidden">
@@ -254,6 +259,6 @@
   <script src="config.js"></script>
   <script src="support-config.js"></script>
   <script src="donations.js?v=1.6"></script>
-  <script src="app.js?v=1.6"></script>
+  <script src="app.js?v=1.7"></script>
 </body>
 </html>
