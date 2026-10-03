@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
-  <meta name="description" content="Buscador de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=1.7" />
+  <meta name="description" content="Buscador público de canciones por tonalidad y BPM pensado para mashups." />
+  <link rel="stylesheet" href="styles.css?v=1.8" />
 </head>
 <body>
   <header class="topbar">
@@ -20,7 +20,6 @@
     </div>
     <div class="topbar-actions">
       <a id="donateHeader" class="support-pill hidden" href="#" target="_blank" rel="noopener noreferrer" aria-label="Apoyar voluntariamente a Mashup Match">☕ Apoyar el proyecto</a>
-      <button id="adminToggle" class="ghost">Administrar</button>
     </div>
   </header>
 
@@ -133,116 +132,6 @@
         </div>
       </div>
     </section>
-
-
-    <dialog id="adminDialog" class="admin-dialog" aria-labelledby="adminDialogTitle">
-      <button id="closeAdminDialog" class="dialog-close admin-dialog-close" aria-label="Cerrar administración">×</button>
-      <section id="adminPanel" class="panel admin-panel">
-      <div class="admin-head">
-        <div>
-          <p class="eyebrow">ADMIN</p>
-          <h2 id="adminDialogTitle">Gestionar catálogo</h2>
-        </div>
-        <button id="logoutBtn" class="ghost hidden">Cerrar sesión</button>
-      </div>
-
-      <section id="adminStatus" class="status hidden" aria-live="polite"></section>
-
-      <div id="loginBox">
-        <p class="muted">Iniciá sesión para agregar, editar o borrar canciones.</p>
-        <div class="inline-form">
-          <input id="email" type="email" placeholder="Email" />
-          <input id="password" type="password" placeholder="Contraseña" />
-          <button id="loginBtn">Entrar</button>
-        </div>
-      </div>
-
-      <section id="metadataBox" class="metadata-box hidden" aria-labelledby="metadataTitle">
-        <div class="section-divider"></div>
-        <div class="metadata-heading">
-          <div>
-            <p class="eyebrow">V1.5 · AHORRÁ TIEMPO</p>
-            <h3 id="metadataTitle">Autocompletar con MusicBrainz</h3>
-            <p class="muted">Buscá una grabación y elegí el lanzamiento. Nada se guarda sin que lo revises.</p>
-          </div>
-          <a href="https://musicbrainz.org/" target="_blank" rel="noopener noreferrer" class="muted metadata-credit">Datos: MusicBrainz ↗</a>
-        </div>
-        <div class="metadata-query">
-          <div><label for="metaSong">Canción</label><input id="metaSong" autocomplete="off" placeholder="Bad Romance" /></div>
-          <div><label for="metaArtist">Artista</label><input id="metaArtist" autocomplete="off" placeholder="Lady Gaga" /></div>
-          <button id="metaSearchBtn" type="button">Buscar</button>
-          <button id="metaFromForm" class="ghost" type="button">Usar datos del formulario</button>
-        </div>
-        <div id="metaStatus" class="metadata-message muted" role="status" aria-live="polite">Usá el buscador para completar una canción nueva o una ya cargada.</div>
-        <div id="metaResults" class="metadata-results hidden" aria-label="Resultados de MusicBrainz"></div>
-        <div id="metaReview" class="metadata-review hidden">
-          <div class="metadata-review-head">
-            <div><p class="eyebrow">REVISÁ ANTES DE APLICAR</p><h4 id="metaChosenTitle"></h4><p id="metaChosenArtist" class="muted"></p></div>
-            <button id="metaCancelBtn" class="ghost" type="button">Descartar</button>
-          </div>
-          <div class="metadata-review-body">
-            <div class="metadata-art" id="metaArt" aria-label="Vista previa de portada"><div class="cover-placeholder">♫</div></div>
-            <div class="metadata-options">
-              <label for="metaRelease">Lanzamiento / álbum</label>
-              <select id="metaRelease"></select>
-              <p id="metaYearPreview" class="muted"></p>
-              <p id="metaCoverState" class="muted" aria-live="polite"></p>
-              <label class="check-row" for="metaOverwrite"><input type="checkbox" id="metaOverwrite"/><span>También reemplazar los campos que ya completé</span></label>
-              <button id="metaApplyBtn" type="button">Aplicar al formulario</button>
-              <p class="muted metadata-small">BPM y tonalidad nunca se modifican. Confirmá la versión y el año antes de guardar.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <form id="songForm" class="song-form hidden">
-        <input id="songId" type="hidden" />
-        <div><label>Título *</label><input id="title" required /><small class="field-hint">Se ajusta automáticamente a Mayúscula Inicial: “Just The Way You Are”.</small></div>
-        <div><label>Artista *</label><input id="artist" required /></div>
-        <div><label>BPM *</label><input id="bpm" type="number" min="30" max="300" step="0.01" required /></div>
-        <div><label>Tonalidad *</label><select id="key" required></select></div>
-        <div><label>Versión</label><input id="version" placeholder="Original, Remix, Acapella…" /></div>
-        <div><label>Álbum</label><input id="album" /></div>
-        <div><label>Año</label><input id="year" type="number" min="1900" max="2100" /></div>
-        <div class="wide"><label>URL de portada</label><input id="coverUrl" type="url" placeholder="https://…" /></div>
-        <div class="wide"><label>Notas</label><textarea id="notes" rows="3" placeholder="Versión, remix, observaciones…"></textarea></div>
-        <div class="form-actions wide">
-          <button type="submit" id="saveBtn">Guardar canción</button>
-          <button type="button" id="cancelEdit" class="ghost hidden">Cancelar edición</button>
-        </div>
-      </form>
-
-      <section id="importBox" class="import-box hidden" aria-labelledby="importTitle">
-        <div class="section-divider"></div>
-        <div class="import-head">
-          <div>
-            <p class="eyebrow">IMPORTACIÓN MASIVA</p>
-            <h3 id="importTitle">Importar canciones desde CSV</h3>
-            <p class="muted">Compatible con archivos CSV exportados desde Excel o Google Sheets. Acepta coma, punto y coma o tabulación como separador.</p>
-          </div>
-          <a class="button-link ghost-link" href="plantilla-canciones.csv" download>Descargar plantilla</a>
-        </div>
-
-        <div class="import-picker">
-          <label class="file-button" for="csvFile">Seleccionar CSV</label>
-          <input id="csvFile" class="visually-hidden" type="file" accept=".csv,text/csv,text/plain" />
-          <span id="csvFileName" class="muted">Ningún archivo seleccionado.</span>
-        </div>
-
-        <label class="check-row">
-          <input id="skipDuplicates" type="checkbox" checked />
-          <span>Omitir duplicados que ya estén en el catálogo o repetidos dentro del archivo.</span>
-        </label>
-
-        <div id="importSummary" class="import-summary hidden"></div>
-        <div id="importPreview" class="import-preview hidden"></div>
-        <div id="importControls" class="form-actions hidden">
-          <button id="importCsvBtn" type="button">Importar canciones</button>
-          <button id="clearCsvBtn" type="button" class="ghost">Cancelar</button>
-        </div>
-      </section>
-      </section>
-    </dialog>
   </main>
 
   <footer id="supportFooter" class="site-footer hidden">
@@ -259,6 +148,6 @@
   <script src="config.js"></script>
   <script src="support-config.js"></script>
   <script src="donations.js?v=1.6"></script>
-  <script src="app.js?v=1.7"></script>
+  <script src="app.js?v=1.8"></script>
 </body>
 </html>

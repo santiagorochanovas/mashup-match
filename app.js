@@ -57,9 +57,10 @@ const els = {
 
 function initKeySelects() {
   const options = KEYS.map(k => `<option value="${k.camelot}">${k.name} · ${k.camelot}</option>`).join('');
-  els.key.innerHTML = '<option value="">Elegí una tonalidad</option>' + options;
-  els.keyFilter.innerHTML = '<option value="">Todas</option>' + options;
-  els.harmonicKey.innerHTML = '<option value="">Elegí una tonalidad</option>' + options;
+  // La versión pública ya no contiene formulario de administración.
+  if (els.key) els.key.innerHTML = '<option value="">Elegí una tonalidad</option>' + options;
+  if (els.keyFilter) els.keyFilter.innerHTML = '<option value="">Todas</option>' + options;
+  if (els.harmonicKey) els.harmonicKey.innerHTML = '<option value="">Elegí una tonalidad</option>' + options;
 }
 
 function showStatus(message, error = false) {
@@ -1005,34 +1006,6 @@ els.pageButtons.addEventListener('click', (e) => {
   render();
   document.querySelector('.search-panel')?.scrollIntoView({ behavior:'smooth', block:'start' });
 });
-els.adminToggle.addEventListener('click', openAdminDialog);
-els.closeAdminDialog.addEventListener('click', closeAdminDialog);
-els.adminDialog.addEventListener('click', (e) => {
-  if (e.target === els.adminDialog) closeAdminDialog();
-});
-els.loginBtn.addEventListener('click', login);
-els.logoutBtn.addEventListener('click', logout);
-els.songForm.addEventListener('submit', saveSong);
-els.cancelEdit.addEventListener('click', resetForm);
-els.csvFile.addEventListener('change', handleCsvFile);
-els.skipDuplicates.addEventListener('change', renderImportPreview);
-els.importCsvBtn.addEventListener('click', importCsvSongs);
-els.clearCsvBtn.addEventListener('click', () => clearImport());
-els.metaSearchBtn.addEventListener('click', searchMetadata);
-els.metaFromForm.addEventListener('click', () => {
-  els.metaSong.value = els.title.value.trim(); els.metaArtist.value = els.artist.value.trim();
-  searchMetadata();
-});
-[els.metaSong, els.metaArtist].forEach(input => input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); searchMetadata(); }
-}));
-els.metaResults.addEventListener('click', e => {
-  const button = e.target.closest('[data-meta-pick]');
-  if (button) selectMetadata(Number(button.dataset.metaPick));
-});
-els.metaRelease.addEventListener('change', updateReleasePreview);
-els.metaApplyBtn.addEventListener('click', applyMetadata);
-els.metaCancelBtn.addEventListener('click', () => resetMetadataLookup());
 els.closeDialog.addEventListener('click', () => els.dialog.close());
 els.dialog.addEventListener('click', (e) => {
   if (e.target === els.dialog) return els.dialog.close();
@@ -1086,5 +1059,4 @@ initKeySelects();
 setView('catalog');
 renderHarmonicExplorer();
 loadSongs();
-updateAuthUI();
-if (sb) sb.auth.onAuthStateChange(() => updateAuthUI());
+// V1.8 pública: no se inicia ninguna sesión de administración en este sitio.
