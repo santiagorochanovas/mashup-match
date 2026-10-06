@@ -40,7 +40,7 @@ const els = {
   catalogTab: $('catalogTab'), explorerTab: $('explorerTab'), catalogView: $('catalogView'),
   pagination: $('pagination'), pageInfo: $('pageInfo'), pageSize: $('pageSize'), pageButtons: $('pageButtons'),
   harmonicKey: $('harmonicKey'), harmonicMode: $('harmonicMode'), harmonicWheel: $('harmonicWheel'), harmonicIntro: $('harmonicIntro'),
-  harmonicSummary: $('harmonicSummary'), applyHarmonicFilter: $('applyHarmonicFilter'), clearHarmonic: $('clearHarmonic'), harmonicExplorer: $('harmonicExplorer'),
+  harmonicSummary: $('harmonicSummary'), harmonicTable: $('harmonicTable'), applyHarmonicFilter: $('applyHarmonicFilter'), clearHarmonic: $('clearHarmonic'), harmonicExplorer: $('harmonicExplorer'),
   adminToggle: $('adminToggle'), adminDialog: $('adminDialog'), closeAdminDialog: $('closeAdminDialog'), adminPanel: $('adminPanel'), adminStatus: $('adminStatus'), loginBox: $('loginBox'), songForm: $('songForm'),
   email: $('email'), password: $('password'), loginBtn: $('loginBtn'), logoutBtn: $('logoutBtn'),
   songId: $('songId'), title: $('title'), artist: $('artist'), bpm: $('bpm'), key: $('key'), version: $('version'), album: $('album'), year: $('year'), coverUrl: $('coverUrl'), notes: $('notes'),
@@ -123,9 +123,13 @@ function harmonicKeysForMode(baseKey, mode='exact') {
   const oppositeMode = sourceMode === 'A' ? 'B' : 'A';
   const prev = normalizeCamelotNumber(sourceNumber - 1);
   const next = normalizeCamelotNumber(sourceNumber + 1);
+  const relativeKey = `${sourceNumber}${oppositeMode}`;
+
+  if (mode === 'relative') return new Set([relativeKey]);
+
   const result = new Set([baseKey]);
   if (mode === 'exact') return result;
-  result.add(`${sourceNumber}${oppositeMode}`);
+  result.add(relativeKey);
   result.add(`${prev}${sourceMode}`);
   result.add(`${next}${sourceMode}`);
   if (mode === 'wide') {
@@ -152,6 +156,82 @@ function relatedKeyGroups(baseKey) {
 
 function songCountForKey(camelot) {
   return songs.filter(song => song.camelot_key === camelot).length;
+}
+
+
+// V1.9 · Mapa cromático. C=0; el movimiento se calcula entre tónicas.
+// El pitch shifting conserva el modo, por eso mayor↔menor se marca como cambio de modo.
+const KEY_PITCH_CLASS = {
+  '1A':8, '1B':11, '2A':3, '2B':6, '3A':10, '3B':1,
+  '4A':5, '4B':8, '5A':0, '5B':3, '6A':7, '6B':10,
+  '7A':2, '7B':5, '8A':9, '8B':0, '9A':4, '9B':7,
+  '10A':11, '10B':2, '11A':6, '11B':9, '12A':1, '12B':4
+};
+
+function upwardSemitones(fromKey, toKey) {
+  const from = KEY_PITCH_CLASS[fromKey];
+  const to = KEY_PITCH_CLASS[toKey];
+  if (from == null || to == null) return 0;
+  return (to - from + 12) % 12;
+}
+
+function shortestSemitoneMove(fromKey, toKey) {
+  const up = upwardSemitones(fromKey, toKey);
+  return up > 6 ? up - 12 : up;
+}
+
+function toneAmountLabel(semitones) {
+  const amount = Math.abs(semitones) / 2;
+  if (amount === 0) return '0 tonos';
+  if (amount === 0.5) return '½ tono';
+  if (Number.isInteger(amount)) return `${amount} ${amount === 1 ? 'tono' : 'tonos'}`;
+  return `${Math.floor(amount)}½ tonos`;
+}
+
+function semitoneMoveLabel(semitones) {
+  if (semitones === 0) return '<strong>0 st</strong><small>Sin mover la tónica</small>';
+  const direction = semitones > 0 ? 'Subir' : 'Bajar';
+  return `<strong>${direction} ${Math.abs(semitones)} st</strong><small>${toneAmountLabel(semitones)}</small>`;
+}
+
+function renderTranspositionTable(baseKey) {
+  if (!els.harmonicTable) return;
+  if (!baseKey) {
+    els.harmonicTable.innerHTML = '<div class="transpose-empty">Elegí una tonalidad base para calcular las distancias.</div>';
+    return;
+  }
+
+  const baseMode = baseKey.slice(-1);
+  const rows = KEYS
+    .map(key => ({
+      ...key,
+      upward: upwardSemitones(baseKey, key.camelot),
+      move: shortestSemitoneMove(baseKey, key.camelot),
+      relation: harmonicRelation(baseKey, key.camelot),
+      sameMode: key.camelot.slice(-1) === baseMode
+    }))
+    .sort((a, b) => a.upward - b.upward || Number(b.sameMode) - Number(a.sameMode));
+
+  els.harmonicTable.innerHTML = `
+    <table class="transpose-table">
+      <thead><tr>
+        <th>Destino</th><th>Camelot</th><th>Relación</th><th>Movimiento de tónica</th><th>Pitch directo</th><th>Catálogo</th>
+      </tr></thead>
+      <tbody>${rows.map(row => {
+        const relationLabel = row.relation.level === 'none' ? 'Otra tonalidad' : row.relation.label;
+        const direct = row.sameMode
+          ? '<span class="pitch-ok">Sí</span>'
+          : '<span class="pitch-mode-change">No · cambia mayor/menor</span>';
+        return `<tr class="transpose-row relation-${row.relation.level}">
+          <td><button type="button" class="transpose-key" data-table-key="${row.camelot}">${escapeHtml(row.name)}</button></td>
+          <td><span class="camelot-chip">${row.camelot}</span></td>
+          <td>${escapeHtml(relationLabel)}</td>
+          <td><span class="move-cell">${semitoneMoveLabel(row.move)}</span></td>
+          <td>${direct}</td>
+          <td>${songCountForKey(row.camelot)} canción${songCountForKey(row.camelot) === 1 ? '' : 'es'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
 }
 
 function wheelClass(baseKey, targetKey, mode) {
@@ -185,6 +265,7 @@ function renderHarmonicExplorer() {
     ? `<div class="wheel-center"><span>${escapeHtml(baseKey)}</span><strong>${escapeHtml(keyName(baseKey))}</strong><small>${songCountForKey(baseKey)} en catálogo</small></div>`
     : `<div class="wheel-center"><span>♫</span><strong>Elegí un tono</strong><small>24 tonalidades</small></div>`;
   els.harmonicWheel.innerHTML = center + buttons.join('');
+  renderTranspositionTable(baseKey);
 
   if (!baseKey) {
     els.harmonicIntro.classList.remove('hidden');
@@ -1038,6 +1119,13 @@ els.harmonicSummary.addEventListener('click', (e) => {
   if (!keyButton) return;
   els.harmonicKey.value = keyButton.dataset.searchKey;
   renderHarmonicExplorer();
+});
+if (els.harmonicTable) els.harmonicTable.addEventListener('click', (e) => {
+  const keyButton = e.target.closest('[data-table-key]');
+  if (!keyButton) return;
+  els.harmonicKey.value = keyButton.dataset.tableKey;
+  renderHarmonicExplorer();
+  els.harmonicWheel.scrollIntoView({ behavior:'smooth', block:'center' });
 });
 els.applyHarmonicFilter.addEventListener('click', () => useHarmonicSearch(els.harmonicKey.value, els.harmonicMode.value));
 els.clearHarmonic.addEventListener('click', () => {

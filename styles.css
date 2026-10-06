@@ -323,3 +323,34 @@ select:disabled, button:disabled { opacity: .5; cursor: not-allowed; }
 }
 
 /* V1.8 · sitio público: administración trasladada a la herramienta local. */
+
+/* V1.9 · Filtro de relativa + tabla cromática de transposición */
+.transpose-section { margin-top:1.4rem; padding-top:1.25rem; border-top:1px solid var(--border); }
+.transpose-head { display:flex; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:.8rem; }
+.transpose-head h3 { margin:.15rem 0 .3rem; font-size:1.25rem; }
+.transpose-head p { margin:.2rem 0; }
+.transpose-table-wrap { overflow:auto; border:1px solid var(--border); border-radius:16px; background:#0e1014; }
+.transpose-empty { min-height:110px; display:grid; place-items:center; text-align:center; padding:1.25rem; color:var(--muted); }
+.transpose-table { width:100%; border-collapse:collapse; min-width:860px; font-size:.84rem; }
+.transpose-table th, .transpose-table td { text-align:left; padding:.72rem .75rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+.transpose-table th { color:var(--muted); background:#111318; position:sticky; top:0; z-index:1; font-size:.76rem; letter-spacing:.02em; }
+.transpose-table tbody tr:last-child td { border-bottom:0; }
+.transpose-table tbody tr:hover { background:#15181d; }
+.transpose-row.relation-exact { box-shadow:inset 3px 0 0 var(--accent); }
+.transpose-row.relation-relative { box-shadow:inset 3px 0 0 #73d4ff; }
+.transpose-row.relation-neighbor { box-shadow:inset 3px 0 0 #d6b8ff; }
+.transpose-row.relation-wide { box-shadow:inset 3px 0 0 #ffd479; }
+.transpose-key { padding:0; border:0; background:transparent; color:var(--text); font-weight:800; text-align:left; }
+.transpose-key:hover { color:var(--accent); }
+.camelot-chip { display:inline-flex; min-width:36px; justify-content:center; padding:.26rem .42rem; border-radius:8px; background:#20242c; border:1px solid #343a45; font-weight:850; }
+.move-cell { display:flex; flex-direction:column; gap:.08rem; }
+.move-cell strong { color:var(--text); }
+.move-cell small { color:var(--muted); }
+.pitch-ok { color:var(--accent); font-weight:800; }
+.pitch-mode-change { color:#ffd479; font-weight:700; font-size:.78rem; }
+.transpose-note { margin:.75rem .1rem 0; color:var(--muted); font-size:.79rem; line-height:1.55; }
+.transpose-note strong { color:var(--text); }
+@media (max-width:760px) {
+  .transpose-table { min-width:760px; }
+  .transpose-section { margin-top:1rem; }
+}
