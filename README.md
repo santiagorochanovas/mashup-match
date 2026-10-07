@@ -1,14 +1,11 @@
-# Mashup Match V1.8 · actualización pública
+# Mashup Match V1.9.1 — corrección
 
-Esta actualización elimina la administración del sitio público. El catálogo, buscador,
-paginación, Explorador Armónico y donaciones continúan funcionando igual.
+Esta actualización corrige la V1.9 y verifica dos mejoras:
 
-Subí a GitHub y reemplazá solamente:
-- `index.html`
-- `app.js`
-- `styles.css`
+1. En **Relación tonal** aparece **Solo tonalidad relativa**.
+2. En **Explorador armónico**, debajo de la rueda, aparece **Mapa cromático** con las 24 tonalidades, distancia en semitonos/tonos, relación armónica y cantidad de canciones.
 
-No reemplaces `config.js`, `support-config.js` ni `donations.js`.
-No borra ni modifica canciones de Supabase.
+La lógica también se inyecta desde `app.js` como respaldo si el navegador conserva temporalmente un `index.html` anterior.
 
-La administración pasa a la aplicación local incluida en el paquete separado `Admin_Local`.
+Reemplazar en GitHub: `index.html`, `styles.css`, `app.js`.
+No tocar `config.js`, `support-config.js`, `donations.js`, Supabase ni el Admin Local.

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador público de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=1.8" />
+  <link rel="stylesheet" href="styles.css?v=1.9.1" />
 </head>
 <body>
   <header class="topbar">
@@ -41,6 +41,7 @@
           <label for="keyMode">Relación tonal</label>
           <select id="keyMode" disabled>
             <option value="exact">Solo tonalidad exacta</option>
+            <option value="relative">Solo tonalidad relativa</option>
             <option value="safe">Compatibilidad segura</option>
             <option value="wide">Exploración amplia</option>
           </select>
@@ -131,6 +132,20 @@
           </div>
         </div>
       </div>
+
+      <section class="transpose-section" aria-labelledby="transposeTitle">
+        <div class="transpose-head">
+          <div>
+            <p class="eyebrow">MAPA CROMÁTICO</p>
+            <h3 id="transposeTitle">Tonalidades y movimiento en semitonos</h3>
+            <p class="muted">La tabla ordena las 24 tonalidades desde la tónica elegida y muestra el movimiento más corto entre tónicas.</p>
+          </div>
+        </div>
+        <div id="harmonicTable" class="transpose-table-wrap">
+          <div class="transpose-empty">Elegí una tonalidad base para calcular las distancias.</div>
+        </div>
+        <p class="transpose-note"><strong>Importante:</strong> mover el pitch conserva mayor/menor. Si una fila cambia de modo, la distancia indica el movimiento de la <em>tónica</em>, no una conversión exacta de mayor a menor. Las relativas pueden combinar muy bien sin transponer.</p>
+      </section>
     </section>
   </main>
 
@@ -148,6 +163,6 @@
   <script src="config.js"></script>
   <script src="support-config.js"></script>
   <script src="donations.js?v=1.6"></script>
-  <script src="app.js?v=1.8"></script>
+  <script src="app.js?v=1.9.1"></script>
 </body>
 </html>

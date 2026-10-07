@@ -34,6 +34,43 @@ let metadataCoverCheck = 0;
 let metadataBusy = false;
 
 const $ = (id) => document.getElementById(id);
+
+// V1.9.1: refuerzo de actualización.
+// Si GitHub/ navegador conserva un index.html anterior, app.js agrega por sí mismo
+// las dos piezas nuevas: "Solo tonalidad relativa" y el mapa cromático.
+function ensureV191Markup() {
+  const keyMode = $('keyMode');
+  if (keyMode && !keyMode.querySelector('option[value="relative"]')) {
+    const option = document.createElement('option');
+    option.value = 'relative';
+    option.textContent = 'Solo tonalidad relativa';
+    const safe = keyMode.querySelector('option[value="safe"]');
+    keyMode.insertBefore(option, safe || null);
+  }
+
+  const explorer = $('harmonicExplorer');
+  if (explorer && !$('harmonicTable')) {
+    const section = document.createElement('section');
+    section.className = 'transpose-section';
+    section.setAttribute('aria-labelledby', 'transposeTitle');
+    section.innerHTML = `
+      <div class="transpose-head">
+        <div>
+          <p class="eyebrow">MAPA CROMÁTICO</p>
+          <h3 id="transposeTitle">Tonalidades y movimiento en semitonos</h3>
+          <p class="muted">Elegí una tonalidad base y compará las 24 tonalidades. Se muestra el movimiento más corto entre tónicas.</p>
+        </div>
+      </div>
+      <div id="harmonicTable" class="transpose-table-wrap">
+        <div class="transpose-empty">Elegí una tonalidad base para calcular las distancias.</div>
+      </div>
+      <p class="transpose-note"><strong>Importante:</strong> mover el pitch conserva mayor/menor. Si una fila cambia de modo, la distancia indica el movimiento de la <em>tónica</em>, no una conversión exacta de mayor a menor. Las relativas pueden combinar muy bien sin transponer.</p>`;
+    explorer.appendChild(section);
+  }
+}
+
+ensureV191Markup();
+
 const els = {
   search: $('search'), keyFilter: $('keyFilter'), keyMode: $('keyMode'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), sort: $('sort'),
   clearFilters: $('clearFilters'), resultCount: $('resultCount'), songGrid: $('songGrid'), status: $('status'),
