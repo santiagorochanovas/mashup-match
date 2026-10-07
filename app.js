@@ -37,15 +37,18 @@ const $ = (id) => document.getElementById(id);
 
 // V1.9.1: refuerzo de actualización.
 // Si GitHub/ navegador conserva un index.html anterior, app.js agrega por sí mismo
-// las dos piezas nuevas: "Solo tonalidad relativa" y el mapa cromático.
+// las piezas nuevas: "Tonalidad relativa y exacta" y el mapa cromático.
 function ensureV191Markup() {
   const keyMode = $('keyMode');
-  if (keyMode && !keyMode.querySelector('option[value="relative"]')) {
-    const option = document.createElement('option');
-    option.value = 'relative';
-    option.textContent = 'Solo tonalidad relativa';
-    const safe = keyMode.querySelector('option[value="safe"]');
-    keyMode.insertBefore(option, safe || null);
+  if (keyMode) {
+    let relativeOption = keyMode.querySelector('option[value="relative"]');
+    if (!relativeOption) {
+      relativeOption = document.createElement('option');
+      relativeOption.value = 'relative';
+      const safe = keyMode.querySelector('option[value="safe"]');
+      keyMode.insertBefore(relativeOption, safe || null);
+    }
+    relativeOption.textContent = 'Tonalidad relativa y exacta';
   }
 
   const explorer = $('harmonicExplorer');
@@ -162,7 +165,7 @@ function harmonicKeysForMode(baseKey, mode='exact') {
   const next = normalizeCamelotNumber(sourceNumber + 1);
   const relativeKey = `${sourceNumber}${oppositeMode}`;
 
-  if (mode === 'relative') return new Set([relativeKey]);
+  if (mode === 'relative') return new Set([baseKey, relativeKey]);
 
   const result = new Set([baseKey]);
   if (mode === 'exact') return result;
