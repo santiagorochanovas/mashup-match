@@ -77,10 +77,13 @@ ensureV191Markup();
 const els = {
   search: $('search'), keyFilter: $('keyFilter'), keyMode: $('keyMode'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), sort: $('sort'),
   clearFilters: $('clearFilters'), resultCount: $('resultCount'), songGrid: $('songGrid'), status: $('status'),
-  catalogTab: $('catalogTab'), explorerTab: $('explorerTab'), catalogView: $('catalogView'),
+  catalogTab: $('catalogTab'), explorerTab: $('explorerTab'), labTab: $('labTab'), catalogView: $('catalogView'),
   pagination: $('pagination'), pageInfo: $('pageInfo'), pageSize: $('pageSize'), pageButtons: $('pageButtons'),
   harmonicKey: $('harmonicKey'), harmonicMode: $('harmonicMode'), harmonicWheel: $('harmonicWheel'), harmonicIntro: $('harmonicIntro'),
   harmonicSummary: $('harmonicSummary'), harmonicTable: $('harmonicTable'), applyHarmonicFilter: $('applyHarmonicFilter'), clearHarmonic: $('clearHarmonic'), harmonicExplorer: $('harmonicExplorer'),
+  mashupLab: $('mashupLab'), labSearchA: $('labSearchA'), labSearchB: $('labSearchB'), labSongA: $('labSongA'), labSongB: $('labSongB'),
+  labPreviewA: $('labPreviewA'), labPreviewB: $('labPreviewB'), labSwap: $('labSwap'), labStrategy: $('labStrategy'),
+  labAnalyze: $('labAnalyze'), labClear: $('labClear'), labResults: $('labResults'),
   adminToggle: $('adminToggle'), adminDialog: $('adminDialog'), closeAdminDialog: $('closeAdminDialog'), adminPanel: $('adminPanel'), adminStatus: $('adminStatus'), loginBox: $('loginBox'), songForm: $('songForm'),
   email: $('email'), password: $('password'), loginBtn: $('loginBtn'), logoutBtn: $('logoutBtn'),
   songId: $('songId'), title: $('title'), artist: $('artist'), bpm: $('bpm'), key: $('key'), version: $('version'), album: $('album'), year: $('year'), coverUrl: $('coverUrl'), notes: $('notes'),
@@ -390,6 +393,8 @@ async function loadSongs() {
   currentPage = 1;
   render();
   renderHarmonicExplorer();
+  populateLabSelectors();
+  if (currentView === 'lab') renderMashupLab();
 }
 function filteredSongs() {
   const q = els.search.value.trim().toLowerCase();
@@ -423,15 +428,351 @@ function filteredSongs() {
 }
 
 function setView(view) {
-  currentView = view === 'explorer' ? 'explorer' : 'catalog';
+  currentView = ['explorer','lab'].includes(view) ? view : 'catalog';
   const showCatalog = currentView === 'catalog';
+  const showExplorer = currentView === 'explorer';
+  const showLab = currentView === 'lab';
+
   els.catalogView.classList.toggle('hidden', !showCatalog);
-  els.harmonicExplorer.classList.toggle('hidden', showCatalog);
+  els.harmonicExplorer.classList.toggle('hidden', !showExplorer);
+  if (els.mashupLab) els.mashupLab.classList.toggle('hidden', !showLab);
+
   els.catalogTab.classList.toggle('active', showCatalog);
-  els.explorerTab.classList.toggle('active', !showCatalog);
+  els.explorerTab.classList.toggle('active', showExplorer);
+  if (els.labTab) els.labTab.classList.toggle('active', showLab);
+
   els.catalogTab.setAttribute('aria-selected', String(showCatalog));
-  els.explorerTab.setAttribute('aria-selected', String(!showCatalog));
-  if (!showCatalog) renderHarmonicExplorer();
+  els.explorerTab.setAttribute('aria-selected', String(showExplorer));
+  if (els.labTab) els.labTab.setAttribute('aria-selected', String(showLab));
+
+  if (showExplorer) renderHarmonicExplorer();
+  if (showLab) renderMashupLab();
+}
+
+
+// V2.0 · Mashup Lab
+function songById(id) {
+  return songs.find(song => String(song.id) === String(id)) || null;
+}
+
+function labOptionLabel(song) {
+  const bpm = Number(song.bpm);
+  const bpmLabel = Number.isFinite(bpm) ? `${Number.isInteger(bpm) ? bpm : bpm.toFixed(1)} BPM` : 'BPM —';
+  return `${song.title} — ${song.artist} · ${bpmLabel} · ${song.camelot_key || '—'}`;
+}
+
+function labSearchMatches(song, query='') {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return [song.title, song.artist, song.album, song.version, song.camelot_key, keyName(song.camelot_key)]
+    .filter(Boolean).join(' ').toLowerCase().includes(q);
+}
+
+function updateLabSelect(which) {
+  const isA = which === 'A';
+  const search = isA ? els.labSearchA : els.labSearchB;
+  const select = isA ? els.labSongA : els.labSongB;
+  if (!search || !select) return;
+
+  const previous = select.value;
+  const list = songs
+    .filter(song => labSearchMatches(song, search.value))
+    .slice()
+    .sort((a,b) => String(a.title || '').localeCompare(String(b.title || ''), 'es', { sensitivity:'base' })
+      || String(a.artist || '').localeCompare(String(b.artist || ''), 'es', { sensitivity:'base' }));
+
+  select.innerHTML = '<option value="">Seleccioná una canción</option>' +
+    list.map(song => `<option value="${escapeHtml(song.id)}">${escapeHtml(labOptionLabel(song))}</option>`).join('');
+
+  if (previous && songs.some(song => String(song.id) === String(previous))) {
+    if (![...select.options].some(option => option.value === String(previous))) {
+      const selectedSong = songById(previous);
+      const option = document.createElement('option');
+      option.value = String(previous);
+      option.textContent = labOptionLabel(selectedSong);
+      select.appendChild(option);
+    }
+    select.value = String(previous);
+  }
+}
+
+function populateLabSelectors() {
+  if (!els.labSongA || !els.labSongB) return;
+  updateLabSelect('A');
+  updateLabSelect('B');
+}
+
+function renderLabPreview(song, target) {
+  if (!target) return;
+  if (!song) {
+    target.innerHTML = '<span class="muted">Todavía no elegiste una canción.</span>';
+    return;
+  }
+  target.innerHTML = `
+    <div class="lab-preview-card">
+      ${cover(song, 'lab-cover')}
+      <div>
+        <strong>${escapeHtml(song.title)}</strong>
+        <span>${escapeHtml(song.artist)}</span>
+        <div class="badges">
+          <span class="badge">${Number(song.bpm).toFixed(Number(song.bpm) % 1 ? 1 : 0)} BPM</span>
+          <span class="badge key">${escapeHtml(keyName(song.camelot_key))} · ${escapeHtml(song.camelot_key)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderMashupLab() {
+  if (!els.mashupLab) return;
+  populateLabSelectors();
+  renderLabPreview(songById(els.labSongA?.value), els.labPreviewA);
+  renderLabPreview(songById(els.labSongB?.value), els.labPreviewB);
+}
+
+function tempoInterpretationLabel(multiplier) {
+  if (multiplier === 2) return 'double-time (×2)';
+  if (multiplier === 0.5) return 'half-time (÷2)';
+  return 'tempo directo';
+}
+
+function bestTempoAdjustment(sourceBpm, targetBpm) {
+  const source = Number(sourceBpm);
+  const target = Number(targetBpm);
+  const multipliers = [1, 2, 0.5];
+
+  const candidates = multipliers.map(multiplier => {
+    const interpreted = source * multiplier;
+    const pct = ((target / interpreted) - 1) * 100;
+    const interpretationPenalty = multiplier === 1 ? 0 : 0.08;
+    return { multiplier, interpreted, target, pct, score:Math.abs(pct) + interpretationPenalty };
+  }).sort((a,b) => a.score - b.score);
+
+  return candidates[0];
+}
+
+function bestTempoPair(aBpm, bBpm) {
+  const a = Number(aBpm), b = Number(bBpm);
+  const multipliers = [1, 2, 0.5];
+  const candidates = [];
+
+  multipliers.forEach(multA => {
+    multipliers.forEach(multB => {
+      const aEff = a * multA;
+      const bEff = b * multB;
+      const ratioDistance = Math.abs(Math.log(aEff / bEff)) * 100;
+      const interpretationPenalty = (multA === 1 ? 0 : .12) + (multB === 1 ? 0 : .12);
+      const rangePenalty = [aEff, bEff].reduce((sum, value) => sum + (value < 55 || value > 210 ? 1.5 : 0), 0);
+      candidates.push({ multA, multB, aEff, bEff, score:ratioDistance + interpretationPenalty + rangePenalty });
+    });
+  });
+
+  candidates.sort((x,y) => x.score - y.score);
+  const best = candidates[0];
+  const midpoint = Math.sqrt(best.aEff * best.bEff);
+  return {
+    ...best,
+    midpoint,
+    pctA: ((midpoint / best.aEff) - 1) * 100,
+    pctB: ((midpoint / best.bEff) - 1) * 100
+  };
+}
+
+function signedPercent(value) {
+  if (Math.abs(value) < 0.005) return '0%';
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+function pitchMoveText(move) {
+  if (move === 0) return '0 st · 0 tonos';
+  const sign = move > 0 ? '+' : '−';
+  return `${sign}${Math.abs(move)} st · ${toneAmountLabel(move)}`;
+}
+
+function adaptKeyPlan(sourceKey, referenceKey) {
+  const sourceMode = sourceKey.slice(-1);
+  const referenceNumber = parseInt(referenceKey, 10);
+  const targetKey = `${referenceNumber}${sourceMode}`;
+  const move = shortestSemitoneMove(sourceKey, targetKey);
+  const targetRelation = harmonicRelation(referenceKey, targetKey);
+  return { targetKey, move, targetRelation };
+}
+
+function balancedKeyPlan(keyA, keyB) {
+  const modeA = keyA.slice(-1);
+  const modeB = keyB.slice(-1);
+  let best = null;
+
+  for (let number = 1; number <= 12; number++) {
+    const targetA = `${number}${modeA}`;
+    const targetB = `${number}${modeB}`;
+    const moveA = shortestSemitoneMove(keyA, targetA);
+    const moveB = shortestSemitoneMove(keyB, targetB);
+    const total = Math.abs(moveA) + Math.abs(moveB);
+    const maxMove = Math.max(Math.abs(moveA), Math.abs(moveB));
+    const candidate = { number, targetA, targetB, moveA, moveB, total, maxMove };
+    if (!best || total < best.total || (total === best.total && maxMove < best.maxMove)) best = candidate;
+  }
+  return best;
+}
+
+function labTempoDifficulty(maxPct) {
+  const value = Math.abs(maxPct);
+  if (value <= 2) return { level:0, label:'Muy fácil' };
+  if (value <= 5) return { level:1, label:'Fácil' };
+  if (value <= 10) return { level:2, label:'Moderada' };
+  if (value <= 18) return { level:3, label:'Exigente' };
+  return { level:4, label:'Muy exigente' };
+}
+
+function labPitchDifficulty(maxSt) {
+  const value = Math.abs(maxSt);
+  if (value === 0) return 0;
+  if (value <= 1) return 1;
+  if (value <= 3) return 2;
+  if (value <= 5) return 3;
+  return 4;
+}
+
+function overallLabDifficulty(tempoPct, pitchSt, relationLevel) {
+  const tempo = labTempoDifficulty(tempoPct).level;
+  const pitch = labPitchDifficulty(pitchSt);
+  const relationPenalty = relationLevel === 'none' ? 1 : relationLevel === 'wide' ? .5 : 0;
+  const score = tempo + pitch + relationPenalty;
+  if (score <= 1) return { label:'BAJA', cls:'easy', text:'Muy buen punto de partida para probar.' };
+  if (score <= 3) return { label:'MEDIA', cls:'medium', text:'Requiere algunos ajustes, pero es razonable.' };
+  if (score <= 5) return { label:'ALTA', cls:'hard', text:'Va a necesitar más trabajo de tempo/pitch y oído.' };
+  return { label:'MUY ALTA', cls:'very-hard', text:'Es una combinación experimental; probala con cuidado.' };
+}
+
+function relationAdvice(relation) {
+  if (relation.level === 'exact') return 'Ya están en la misma tonalidad: probá primero sin mover pitch.';
+  if (relation.level === 'relative') return 'Son relativas y comparten las mismas siete notas: probá primero con 0 semitonos.';
+  if (relation.level === 'neighbor') return 'Son vecinas en el círculo de quintas: pueden funcionar sin transponer.';
+  if (relation.level === 'wide') return 'Tienen una relación cercana ampliada: puede funcionar, pero escuchá el arreglo.';
+  return 'No hay una relación Camelot cercana; conviene usar el plan de transposición como punto de partida.';
+}
+
+function labSongMini(song, letter) {
+  return `<div class="lab-result-song">
+    <span class="lab-letter ${letter === 'B' ? 'alt' : ''}">${letter}</span>
+    <div>
+      <strong>${escapeHtml(song.title)}</strong>
+      <span>${escapeHtml(song.artist)}</span>
+      <small>${song.bpm} BPM · ${escapeHtml(keyName(song.camelot_key))} · ${escapeHtml(song.camelot_key)}</small>
+    </div>
+  </div>`;
+}
+
+function analyzeMashupLab() {
+  if (!els.labResults) return;
+  const songA = songById(els.labSongA?.value);
+  const songB = songById(els.labSongB?.value);
+
+  if (!songA || !songB) {
+    els.labResults.innerHTML = '<div class="lab-empty"><span>⚠</span><strong>Faltan canciones</strong><p>Elegí una canción A y una canción B para analizar la mezcla.</p></div>';
+    return;
+  }
+  if (String(songA.id) === String(songB.id)) {
+    els.labResults.innerHTML = '<div class="lab-empty"><span>↔</span><strong>Elegiste la misma canción dos veces</strong><p>Seleccioná dos canciones diferentes.</p></div>';
+    return;
+  }
+
+  const strategy = els.labStrategy.value;
+  const relation = harmonicRelation(songA.camelot_key, songB.camelot_key);
+  let tempoHtml = '';
+  let harmonyHtml = '';
+  let maxTempoPct = 0;
+  let maxPitch = 0;
+
+  if (strategy === 'adaptB') {
+    const tempo = bestTempoAdjustment(songB.bpm, songA.bpm);
+    const keyPlan = adaptKeyPlan(songB.camelot_key, songA.camelot_key);
+    maxTempoPct = Math.abs(tempo.pct);
+    maxPitch = Math.abs(keyPlan.move);
+
+    tempoHtml = `
+      <div class="lab-metric-main">${signedPercent(tempo.pct)}</div>
+      <p><strong>B → tempo de A:</strong> interpretar B a <strong>${tempo.interpreted.toFixed(tempo.interpreted % 1 ? 1 : 0)} BPM</strong> (${tempoInterpretationLabel(tempo.multiplier)}) y llevarla a <strong>${songA.bpm} BPM</strong>.</p>
+      <p class="muted">${Math.abs(tempo.pct) < .05 ? 'No hace falta estirar el tempo.' : `Cambio recomendado: ${signedPercent(tempo.pct)} sobre la interpretación elegida.`}</p>`;
+
+    harmonyHtml = `
+      <div class="lab-metric-main">${pitchMoveText(keyPlan.move)}</div>
+      <p><strong>Objetivo para B:</strong> ${escapeHtml(keyName(keyPlan.targetKey))} · ${keyPlan.targetKey}.</p>
+      <p class="muted">${keyPlan.targetRelation.level === 'exact' ? 'Quedaría en la misma tonalidad que A.' : 'Quedaría como relativa de A, conservando el modo original de B.'}</p>`;
+  } else if (strategy === 'adaptA') {
+    const tempo = bestTempoAdjustment(songA.bpm, songB.bpm);
+    const keyPlan = adaptKeyPlan(songA.camelot_key, songB.camelot_key);
+    maxTempoPct = Math.abs(tempo.pct);
+    maxPitch = Math.abs(keyPlan.move);
+
+    tempoHtml = `
+      <div class="lab-metric-main">${signedPercent(tempo.pct)}</div>
+      <p><strong>A → tempo de B:</strong> interpretar A a <strong>${tempo.interpreted.toFixed(tempo.interpreted % 1 ? 1 : 0)} BPM</strong> (${tempoInterpretationLabel(tempo.multiplier)}) y llevarla a <strong>${songB.bpm} BPM</strong>.</p>
+      <p class="muted">${Math.abs(tempo.pct) < .05 ? 'No hace falta estirar el tempo.' : `Cambio recomendado: ${signedPercent(tempo.pct)} sobre la interpretación elegida.`}</p>`;
+
+    harmonyHtml = `
+      <div class="lab-metric-main">${pitchMoveText(keyPlan.move)}</div>
+      <p><strong>Objetivo para A:</strong> ${escapeHtml(keyName(keyPlan.targetKey))} · ${keyPlan.targetKey}.</p>
+      <p class="muted">${keyPlan.targetRelation.level === 'exact' ? 'Quedaría en la misma tonalidad que B.' : 'Quedaría como relativa de B, conservando el modo original de A.'}</p>`;
+  } else {
+    const tempo = bestTempoPair(songA.bpm, songB.bpm);
+    const keyPlan = balancedKeyPlan(songA.camelot_key, songB.camelot_key);
+    maxTempoPct = Math.max(Math.abs(tempo.pctA), Math.abs(tempo.pctB));
+    maxPitch = Math.max(Math.abs(keyPlan.moveA), Math.abs(keyPlan.moveB));
+
+    tempoHtml = `
+      <div class="lab-metric-main">${tempo.midpoint.toFixed(1)} BPM</div>
+      <p><strong>Punto medio:</strong> A se interpreta a ${tempo.aEff.toFixed(tempo.aEff % 1 ? 1 : 0)} BPM (${tempoInterpretationLabel(tempo.multA)}) y B a ${tempo.bEff.toFixed(tempo.bEff % 1 ? 1 : 0)} BPM (${tempoInterpretationLabel(tempo.multB)}).</p>
+      <p class="muted">A: ${signedPercent(tempo.pctA)} · B: ${signedPercent(tempo.pctB)}</p>`;
+
+    const sameMode = songA.camelot_key.slice(-1) === songB.camelot_key.slice(-1);
+    harmonyHtml = `
+      <div class="lab-metric-main">${pitchMoveText(keyPlan.moveA)} / ${pitchMoveText(keyPlan.moveB)}</div>
+      <p><strong>A →</strong> ${escapeHtml(keyName(keyPlan.targetA))} · ${keyPlan.targetA} &nbsp; <strong>B →</strong> ${escapeHtml(keyName(keyPlan.targetB))} · ${keyPlan.targetB}</p>
+      <p class="muted">${sameMode ? 'Ambas terminarían en la misma tonalidad.' : 'Terminarían como tonalidades relativas, conservando mayor/menor de cada canción.'}</p>`;
+  }
+
+  const difficulty = overallLabDifficulty(maxTempoPct, maxPitch, relation.level);
+  const tempoDiff = labTempoDifficulty(maxTempoPct);
+
+  els.labResults.innerHTML = `
+    <div class="lab-result-head">
+      ${labSongMini(songA, 'A')}
+      <div class="lab-result-vs">+</div>
+      ${labSongMini(songB, 'B')}
+    </div>
+
+    <div class="lab-current-relation relation-${relation.level}">
+      <div>
+        <span class="lab-kicker">RELACIÓN ACTUAL</span>
+        <strong>${escapeHtml(relation.label)}</strong>
+      </div>
+      <p>${escapeHtml(relationAdvice(relation))}</p>
+    </div>
+
+    <div class="lab-result-grid">
+      <article class="lab-analysis-card">
+        <span class="lab-kicker">TEMPO</span>
+        <h3>Ajuste de BPM</h3>
+        ${tempoHtml}
+        <div class="lab-chip">${tempoDiff.label}</div>
+      </article>
+
+      <article class="lab-analysis-card">
+        <span class="lab-kicker">ARMONÍA</span>
+        <h3>Pitch / tonalidad</h3>
+        ${harmonyHtml}
+        <p class="lab-theory-note"><strong>Nota:</strong> cambiar pitch conserva el modo. Si una pista es mayor y la otra menor, el laboratorio busca una tonalidad relativa compatible en lugar de fingir que el pitch convierte mayor ↔ menor.</p>
+      </article>
+
+      <article class="lab-analysis-card lab-difficulty-card ${difficulty.cls}">
+        <span class="lab-kicker">RESULTADO</span>
+        <h3>Dificultad estimada</h3>
+        <div class="lab-difficulty">${difficulty.label}</div>
+        <p>${difficulty.text}</p>
+        <small>La dificultad es orientativa: no analiza acordes, melodía, estructura ni timbre.</small>
+      </article>
+    </div>`;
 }
 
 function resetPageAndRender() {
@@ -1115,6 +1456,7 @@ els.clearFilters.addEventListener('click', () => {
 });
 els.catalogTab.addEventListener('click', () => setView('catalog'));
 els.explorerTab.addEventListener('click', () => setView('explorer'));
+if (els.labTab) els.labTab.addEventListener('click', () => setView('lab'));
 els.pageSize.addEventListener('change', () => {
   pageSize = Number(els.pageSize.value) || 24;
   currentPage = 1;
@@ -1181,6 +1523,37 @@ els.songGrid.addEventListener('click', (e) => {
   if (edit) return editSong(songs.find(s => String(s.id) === String(edit.dataset.edit)));
   const del = e.target.closest('[data-delete]');
   if (del) deleteSong(del.dataset.delete);
+});
+
+
+if (els.labSearchA) els.labSearchA.addEventListener('input', () => updateLabSelect('A'));
+if (els.labSearchB) els.labSearchB.addEventListener('input', () => updateLabSelect('B'));
+if (els.labSongA) els.labSongA.addEventListener('change', () => renderLabPreview(songById(els.labSongA.value), els.labPreviewA));
+if (els.labSongB) els.labSongB.addEventListener('change', () => renderLabPreview(songById(els.labSongB.value), els.labPreviewB));
+if (els.labSwap) els.labSwap.addEventListener('click', () => {
+  const a = els.labSongA.value;
+  const b = els.labSongB.value;
+  // Limpiamos los filtros para garantizar que ambos temas existan en los dos selectores.
+  els.labSearchA.value = '';
+  els.labSearchB.value = '';
+  populateLabSelectors();
+  els.labSongA.value = b;
+  els.labSongB.value = a;
+  renderLabPreview(songById(els.labSongA.value), els.labPreviewA);
+  renderLabPreview(songById(els.labSongB.value), els.labPreviewB);
+  if (els.labSongA.value && els.labSongB.value) analyzeMashupLab();
+});
+if (els.labAnalyze) els.labAnalyze.addEventListener('click', analyzeMashupLab);
+if (els.labClear) els.labClear.addEventListener('click', () => {
+  els.labSearchA.value = '';
+  els.labSearchB.value = '';
+  populateLabSelectors();
+  els.labSongA.value = '';
+  els.labSongB.value = '';
+  renderLabPreview(null, els.labPreviewA);
+  renderLabPreview(null, els.labPreviewB);
+  els.labStrategy.value = 'adaptB';
+  els.labResults.innerHTML = '<div class="lab-empty"><span>⚗</span><strong>Elegí dos canciones</strong><p>Vas a ver cuánto mover el BPM, cuántos semitonos/tonos cambiar y qué relación armónica tienen.</p></div>';
 });
 
 initKeySelects();

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador público de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=1.9.1" />
+  <link rel="stylesheet" href="styles.css?v=2.0" />
 </head>
 <body>
   <header class="topbar">
@@ -16,6 +16,7 @@
       <nav class="view-tabs" aria-label="Secciones principales">
         <button id="catalogTab" class="view-tab active" type="button" aria-selected="true">♫ Catálogo</button>
         <button id="explorerTab" class="view-tab" type="button" aria-selected="false">◎ Explorador armónico</button>
+        <button id="labTab" class="view-tab" type="button" aria-selected="false">⚗ Mashup Lab</button>
       </nav>
     </div>
     <div class="topbar-actions">
@@ -147,6 +148,78 @@
         <p class="transpose-note"><strong>Importante:</strong> mover el pitch conserva mayor/menor. Si una fila cambia de modo, la distancia indica el movimiento de la <em>tónica</em>, no una conversión exacta de mayor a menor. Las relativas pueden combinar muy bien sin transponer.</p>
       </section>
     </section>
+
+    <section id="mashupLab" class="panel lab-panel view-section hidden">
+      <div class="lab-head">
+        <div>
+          <p class="eyebrow">MASHUP LAB</p>
+          <h2>Laboratorio de mashups</h2>
+          <p class="muted">Elegí dos canciones de tu catálogo y calculá ajustes de tempo, pitch y una ruta armónica razonable para probar la mezcla.</p>
+        </div>
+        <div class="lab-note">
+          <strong>Consejo</strong>
+          <span>Usá los números como punto de partida. El arreglo, la voz y los acordes siguen mandando.</span>
+        </div>
+      </div>
+
+      <div class="lab-pickers">
+        <article class="lab-picker">
+          <div class="lab-picker-title">
+            <span class="lab-letter">A</span>
+            <div>
+              <strong>Canción A</strong>
+              <small>Referencia o primera pista</small>
+            </div>
+          </div>
+          <label for="labSearchA">Filtrar canciones</label>
+          <input id="labSearchA" type="search" placeholder="Título o artista…" autocomplete="off" />
+          <label for="labSongA">Elegir canción</label>
+          <select id="labSongA"><option value="">Seleccioná una canción</option></select>
+          <div id="labPreviewA" class="lab-preview"><span class="muted">Todavía no elegiste una canción.</span></div>
+        </article>
+
+        <div class="lab-swap-wrap">
+          <button id="labSwap" type="button" class="ghost lab-swap" title="Intercambiar A y B" aria-label="Intercambiar canción A y canción B">⇄</button>
+        </div>
+
+        <article class="lab-picker">
+          <div class="lab-picker-title">
+            <span class="lab-letter alt">B</span>
+            <div>
+              <strong>Canción B</strong>
+              <small>Segunda pista para comparar</small>
+            </div>
+          </div>
+          <label for="labSearchB">Filtrar canciones</label>
+          <input id="labSearchB" type="search" placeholder="Título o artista…" autocomplete="off" />
+          <label for="labSongB">Elegir canción</label>
+          <select id="labSongB"><option value="">Seleccioná una canción</option></select>
+          <div id="labPreviewB" class="lab-preview"><span class="muted">Todavía no elegiste una canción.</span></div>
+        </article>
+      </div>
+
+      <div class="lab-controls">
+        <div>
+          <label for="labStrategy">Estrategia</label>
+          <select id="labStrategy">
+            <option value="adaptB">Adaptar B a la canción A</option>
+            <option value="adaptA">Adaptar A a la canción B</option>
+            <option value="middle">Buscar punto medio</option>
+          </select>
+        </div>
+        <button id="labAnalyze" type="button">Analizar mashup</button>
+        <button id="labClear" type="button" class="ghost">Limpiar</button>
+      </div>
+
+      <div id="labResults" class="lab-results">
+        <div class="lab-empty">
+          <span>⚗</span>
+          <strong>Elegí dos canciones</strong>
+          <p>Vas a ver cuánto mover el BPM, cuántos semitonos/tonos cambiar y qué relación armónica tienen.</p>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <footer id="supportFooter" class="site-footer hidden">
@@ -163,6 +236,6 @@
   <script src="config.js"></script>
   <script src="support-config.js"></script>
   <script src="donations.js?v=1.6"></script>
-  <script src="app.js?v=1.9.2"></script>
+  <script src="app.js?v=2.0"></script>
 </body>
 </html>

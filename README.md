@@ -1,17 +1,24 @@
-# Mashup Match V1.9.1 — corrección
+# Mashup Match V2.0 · Mashup Lab
 
-Esta actualización corrige la V1.9 y verifica dos mejoras:
+Esta actualización agrega una tercera pestaña pública: **Mashup Lab**.
 
-1. En **Relación tonal** aparece **Tonalidad relativa y exacta**.
-2. En **Explorador armónico**, debajo de la rueda, aparece **Mapa cromático** con las 24 tonalidades, distancia en semitonos/tonos, relación armónica y cantidad de canciones.
+## Qué hace
+- Elegir dos canciones del catálogo.
+- Adaptar B a A, A a B o buscar un punto medio.
+- Calcular cambios de BPM en porcentaje.
+- Reconocer relaciones half-time / double-time.
+- Calcular pitch en semitonos y tonos.
+- Respetar el modo mayor/menor.
+- Para modos distintos, buscar una tonalidad relativa compatible.
+- Mostrar una dificultad orientativa.
 
-La lógica también se inyecta desde `app.js` como respaldo si el navegador conserva temporalmente un `index.html` anterior.
+## Actualizar GitHub
+Reemplazá únicamente:
+- `index.html`
+- `app.js`
+- `styles.css`
 
-Reemplazar en GitHub: `index.html`, `styles.css`, `app.js`.
-No tocar `config.js`, `support-config.js`, `donations.js`, Supabase ni el Admin Local.
+No reemplaces `config.js`, `support-config.js` ni `donations.js`.
+No hace falta tocar Supabase, el Admin Local ni MusicBrainz.
 
-
-## V1.9.2
-El modo `relative` ahora conserva la tonalidad base y suma su relativa.
-Ejemplo: F major (7B) muestra F major (7B) + D minor (7A).
-Las opciones `safe` y `wide` no fueron modificadas.
+Los cálculos son una ayuda creativa: no analizan acordes, melodía, arreglo, estructura ni timbre del audio.
