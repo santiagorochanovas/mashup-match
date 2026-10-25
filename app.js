@@ -75,7 +75,7 @@ function ensureV191Markup() {
 ensureV191Markup();
 
 const els = {
-  search: $('search'), keyFilter: $('keyFilter'), keyMode: $('keyMode'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), sort: $('sort'),
+  search: $('search'), keyFilter: $('keyFilter'), keyMode: $('keyMode'), bpmMin: $('bpmMin'), bpmMax: $('bpmMax'), bpmMode: $('bpmMode'), sort: $('sort'),
   clearFilters: $('clearFilters'), resultCount: $('resultCount'), songGrid: $('songGrid'), status: $('status'),
   catalogTab: $('catalogTab'), explorerTab: $('explorerTab'), labTab: $('labTab'), catalogView: $('catalogView'),
   pagination: $('pagination'), pageInfo: $('pageInfo'), pageSize: $('pageSize'), pageButtons: $('pageButtons'),
@@ -396,6 +396,51 @@ async function loadSongs() {
   populateLabSelectors();
   if (currentView === 'lab') renderMashupLab();
 }
+// V2.1 · Rango BPM con equivalencia half-time / double-time
+function bpmRangeInfo(bpm, min, max, mode='halfdouble') {
+  const raw = Number(bpm);
+  if (!Number.isFinite(raw)) return { match:false, factor:1, equivalent:raw, kind:'none' };
+
+  const hasMin = Number.isFinite(min);
+  const hasMax = Number.isFinite(max);
+  if (!hasMin && !hasMax) return { match:true, factor:1, equivalent:raw, kind:'direct' };
+
+  const inRange = value => (!hasMin || value >= min) && (!hasMax || value <= max);
+  const candidates = [{ factor:1, equivalent:raw, kind:'direct' }];
+
+  if (mode === 'halfdouble') {
+    // Una pista rápida puede sentirse a la mitad (150 → 75).
+    candidates.push({ factor:.5, equivalent:raw / 2, kind:'half-time' });
+    // Una pista lenta puede sentirse al doble (75 → 150).
+    candidates.push({ factor:2, equivalent:raw * 2, kind:'double-time' });
+  }
+
+  const matching = candidates.filter(candidate => inRange(candidate.equivalent));
+  if (!matching.length) return { match:false, factor:1, equivalent:raw, kind:'none' };
+
+  // Preferimos el BPM real si ya entra en el rango.
+  const direct = matching.find(candidate => candidate.factor === 1);
+  if (direct) return { match:true, ...direct };
+
+  // Si hay más de una equivalencia posible, elegimos la más cercana al centro del rango.
+  const center = hasMin && hasMax ? (min + max) / 2 : (hasMin ? min : max);
+  matching.sort((a,b) => Math.abs(a.equivalent - center) - Math.abs(b.equivalent - center));
+  return { match:true, ...matching[0] };
+}
+
+function bpmEquivalentBadge(song) {
+  if (!els.bpmMode || els.bpmMode.value !== 'halfdouble') return '';
+  const min = parseFloat(els.bpmMin.value);
+  const max = parseFloat(els.bpmMax.value);
+  if (Number.isNaN(min) && Number.isNaN(max)) return '';
+
+  const info = bpmRangeInfo(Number(song.bpm), min, max, els.bpmMode.value);
+  if (!info.match || info.factor === 1) return '';
+  const value = Number(info.equivalent);
+  const shown = Number.isInteger(value) ? value : value.toFixed(1);
+  return `<span class="badge tempo-equivalent" title="${info.kind === 'half-time' ? 'Half-time' : 'Double-time'}">↔ ${shown} BPM equiv.</span>`;
+}
+
 function filteredSongs() {
   const q = els.search.value.trim().toLowerCase();
   const key = els.keyFilter.value;
@@ -406,8 +451,8 @@ function filteredSongs() {
     const haystack = [song.title, song.artist, song.version, song.album, song.year, song.bpm, song.camelot_key, keyName(song.camelot_key)].join(' ').toLowerCase();
     if (q && !haystack.includes(q)) return false;
     if (key && !acceptedKeys.has(song.camelot_key)) return false;
-    if (!Number.isNaN(min) && Number(song.bpm) < min) return false;
-    if (!Number.isNaN(max) && Number(song.bpm) > max) return false;
+    const bpmRange = bpmRangeInfo(Number(song.bpm), min, max, els.bpmMode?.value || 'exact');
+    if (!bpmRange.match) return false;
     return true;
   });
   const sort = els.sort.value;
@@ -516,6 +561,7 @@ function renderLabPreview(song, target) {
         <span>${escapeHtml(song.artist)}</span>
         <div class="badges">
           <span class="badge">${Number(song.bpm).toFixed(Number(song.bpm) % 1 ? 1 : 0)} BPM</span>
+          ${bpmEquivalentBadge(song)}
           <span class="badge key">${escapeHtml(keyName(song.camelot_key))} · ${escapeHtml(song.camelot_key)}</span>
         </div>
       </div>
@@ -1442,6 +1488,7 @@ function applyMetadata() {
   els.search.addEventListener(evt, resetPageAndRender);
   els.bpmMin.addEventListener(evt, resetPageAndRender);
   els.bpmMax.addEventListener(evt, resetPageAndRender);
+  if (els.bpmMode) els.bpmMode.addEventListener(evt, resetPageAndRender);
   els.sort.addEventListener(evt, resetPageAndRender);
 });
 els.keyFilter.addEventListener('change', () => {
@@ -1452,7 +1499,7 @@ els.keyMode.addEventListener('change', resetPageAndRender);
 
 els.clearFilters.addEventListener('click', () => {
   els.search.value=''; els.keyFilter.value=''; els.keyMode.value='exact'; els.keyMode.disabled=true;
-  els.bpmMin.value=''; els.bpmMax.value=''; els.sort.value='newest'; resetPageAndRender();
+  els.bpmMin.value=''; els.bpmMax.value=''; if (els.bpmMode) els.bpmMode.value='halfdouble'; els.sort.value='newest'; resetPageAndRender();
 });
 els.catalogTab.addEventListener('click', () => setView('catalog'));
 els.explorerTab.addEventListener('click', () => setView('explorer'));

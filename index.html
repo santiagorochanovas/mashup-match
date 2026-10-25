@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mashup Match</title>
   <meta name="description" content="Buscador público de canciones por tonalidad y BPM pensado para mashups." />
-  <link rel="stylesheet" href="styles.css?v=2.0" />
+  <link rel="stylesheet" href="styles.css?v=2.1" />
 </head>
 <body>
   <header class="topbar">
@@ -54,6 +54,13 @@
         <div>
           <label for="bpmMax">BPM máx.</label>
           <input id="bpmMax" type="number" min="30" max="300" placeholder="Ej. 130" />
+        </div>
+        <div>
+          <label for="bpmMode">Equivalencia BPM</label>
+          <select id="bpmMode">
+            <option value="halfdouble" selected>Incluir half / double-time</option>
+            <option value="exact">Solo BPM exacto</option>
+          </select>
         </div>
         <div>
           <label for="sort">Ordenar</label>
@@ -236,6 +243,6 @@
   <script src="config.js"></script>
   <script src="support-config.js"></script>
   <script src="donations.js?v=1.6"></script>
-  <script src="app.js?v=2.0"></script>
+  <script src="app.js?v=2.1"></script>
 </body>
 </html>

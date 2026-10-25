@@ -105,7 +105,7 @@ dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(4px); }
 }
 
 /* V1.3 · Explorador armónico */
-.filters { grid-template-columns: repeat(5, minmax(0,1fr)); }
+.filters { grid-template-columns: repeat(6, minmax(0,1fr)); }
 select:disabled, button:disabled { opacity: .5; cursor: not-allowed; }
 
 .harmonic-panel { margin-top: 1.2rem; overflow: hidden; }
@@ -435,3 +435,7 @@ select:disabled, button:disabled { opacity: .5; cursor: not-allowed; }
   .lab-preview-card { grid-template-columns:68px 1fr; }
   .lab-cover { width:68px; height:68px; }
 }
+
+
+/* V2.1 · equivalencia de tempo */
+.badge.tempo-equivalent { color:#73d4ff; border-color:#35596a; background:rgba(115,212,255,.08); }

@@ -1,16 +1,15 @@
-# Mashup Match V2.0 · Mashup Lab
+# Mashup Match V2.1 · Tempo inteligente
 
-Esta actualización agrega una tercera pestaña pública: **Mashup Lab**.
+Esta actualización mejora el filtro de BPM del catálogo.
 
-## Qué hace
-- Elegir dos canciones del catálogo.
-- Adaptar B a A, A a B o buscar un punto medio.
-- Calcular cambios de BPM en porcentaje.
-- Reconocer relaciones half-time / double-time.
-- Calcular pitch en semitonos y tonos.
-- Respetar el modo mayor/menor.
-- Para modos distintos, buscar una tonalidad relativa compatible.
-- Mostrar una dificultad orientativa.
+## Nuevo: equivalencia half-time / double-time
+El filtro **Equivalencia BPM** viene activado por defecto.
+
+Ejemplos:
+- Buscar 70–80 BPM también incluye 140–160 BPM porque 140/2=70 y 160/2=80.
+- Buscar 140–160 BPM también incluye 70–80 BPM porque 70×2=140 y 80×2=160.
+- Si una canción entra sólo mediante equivalencia, su tarjeta muestra `↔ XX BPM equiv.`.
+- Podés cambiar a **Solo BPM exacto** para recuperar el comportamiento anterior.
 
 ## Actualizar GitHub
 Reemplazá únicamente:
@@ -18,7 +17,4 @@ Reemplazá únicamente:
 - `app.js`
 - `styles.css`
 
-No reemplaces `config.js`, `support-config.js` ni `donations.js`.
-No hace falta tocar Supabase, el Admin Local ni MusicBrainz.
-
-Los cálculos son una ayuda creativa: no analizan acordes, melodía, arreglo, estructura ni timbre del audio.
+No hace falta tocar Supabase, Admin Local, MusicBrainz, `config.js`, `support-config.js` ni `donations.js`.
